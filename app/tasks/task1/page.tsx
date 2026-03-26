@@ -1,47 +1,208 @@
-"use client";
 import { useState, useEffect, useRef, CSSProperties, FC } from "react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type LineType = "normal" | "accent" | "danger" | "dim";
-type ChatStep = "idle" | "q1" | "q2" | "q3" | "done";
+type LineType    = "normal" | "accent" | "danger" | "dim";
+type ChatStep    = "idle" | "q1" | "q2" | "q3" | "done";
 type EvidenceKey = "autopsy" | "neural" | "temperature" | "timeline";
 
-interface EvidenceLine {
-  t: LineType;
-  s: string;
+interface EvidenceLine   { t: LineType; s: string; }
+interface EvidenceFile   { title: string; lines: EvidenceLine[]; }
+interface Message        { from: "ghost" | "user"; text: string; }
+interface Scores         { q1: number; q2: number; q3: number; }
+interface GhostIconProps { size?: number; }
+interface ModalProps     { file: EvidenceKey | null; onClose: () => void; }
+interface MsgProps       { msg: Message; }
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const Q1_CORRECT = "Neural overload";
+const Q2_CORRECT = "Safety dampening / shutdown system";
+
+const Q1_OPTIONS = [
+  "Brain hemorrhage",
+  "Chemical poisoning",
+  "Neural overload",
+  "External trauma",
+];
+
+const Q2_OPTIONS = [
+  "Feedback regulation system",
+  "Signal amplification module",
+  "Safety dampening / shutdown system",
+  "Data integrity system",
+  "Thermal control system",
+];
+
+const HINTS: Record<"weak" | "medium" | "direct", { cost: number; label: string; text: string }> = {
+  weak: {
+    cost: 10,
+    label: "Weak hint",
+    text: "WEAK HINT (-10 pts):\nLook at what caused the failure, how the system reacted to it, and whether the timeline matches the physical evidence.",
+  },
+  medium: {
+    cost: 15,
+    label: "Medium hint",
+    text: "MEDIUM HINT (-15 pts):\nThe logs show abnormal neural activity, the system attempts to control it, and the temperature data may not align with the official report.",
+  },
+  direct: {
+    cost: 20,
+    label: "Direct hint",
+    text: "DIRECT HINT (-20 pts):\nThe subject experienced extreme neural activity, the system failed to stop it due to a safety/dampening failure, and the estimated time of death does not match the official timeline. If you're unsure about the medical terminology in the autopsy, try looking it up.",
+  },
+};
+
+// ── Evidence Data ─────────────────────────────────────────────────────────────
+const EVIDENCE: Record<EvidenceKey, EvidenceFile> = {
+  autopsy: {
+    title: "[ FORENSIC POSTMORTEM REPORT — NB-IR-2147 ]",
+    lines: [
+      { t: "normal", s: "CASE ID: NB-IR-2147 | STATUS: FINALIZED" },
+      { t: "normal", s: "SUBJECT: Rishab Sen | AGE: 31 | SEX: Male" },
+      { t: "normal", s: "DATE: 12 Oct 20XX | LOCATION: Sector 4" },
+      { t: "normal", s: "LEAD EXAMINER: Dr. A. Rao" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "EXTERNAL EXAMINATION:" },
+      { t: "normal", s: "" },
+      { t: "accent", s: "  › No blunt force trauma, lacerations" },
+      { t: "accent", s: "    or abrasions detected." },
+      { t: "accent", s: "  › No signs of struggle." },
+      { t: "accent", s: "  › No thermal or electrical burns" },
+      { t: "accent", s: "    on torso or extremities." },
+      { t: "accent", s: "  › No puncture marks detected." },
+      { t: "normal", s: "" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "INTERNAL EXAMINATION:" },
+      { t: "normal", s: "" },
+      { t: "danger", s: "  › DIFFUSE CEREBRAL EDEMA detected." },
+      { t: "danger", s: "  › Petechial hemorrhaging in deep" },
+      { t: "danger", s: "    cortical layers." },
+      { t: "danger", s: "  › Catastrophic depolarization event" },
+      { t: "danger", s: "    across neural pathways." },
+      { t: "accent", s: "  › Contraction band necrosis in heart" },
+      { t: "accent", s: "    tissue — catecholamine surge." },
+      { t: "normal", s: "  › Systemic shutdown: extreme velocity." },
+      { t: "normal", s: "" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "TOXICOLOGY:" },
+      { t: "normal", s: "" },
+      { t: "accent", s: "  › Narcotics/Stimulants/Toxins: NEGATIVE" },
+      { t: "accent", s: "  › Poisoning: STRICTLY RULED OUT" },
+      { t: "normal", s: "" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "danger", s: "CAUSE OF DEATH:" },
+      { t: "danger", s: "  Acute Myocardial Asystole secondary" },
+      { t: "danger", s: "  to Idiopathic Cortical Overload." },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "Signed: Dr. A. Rao, Chief Medical Examiner" },
+    ],
+  },
+  neural: {
+    title: "[ NEURAL SYSTEM ACTIVITY LOG — SESSION 8842-X ]",
+    lines: [
+      { t: "normal", s: "SYSTEM: NEURAL_INTERFACE_B3" },
+      { t: "normal", s: "SESSION ID: 8842-X | USER: SEN_R_931" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "TIMESTAMP     EVENT" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "21:00:11  [SYS]  Handshake 100% stable. AES-256." },
+      { t: "normal", s: "21:00:25  [LINK] Neural monitoring active. Lock: SEN_R." },
+      { t: "normal", s: "21:00:40  [SENS] Ocular tracking: OK. Vestibular: OK." },
+      { t: "normal", s: "21:00:58  [CALB] Impedance: 0.48k Ohm. SNR: 94dB." },
+      { t: "normal", s: "21:01:20  [DATA] Buffer stream initialized. 1024kb." },
+      { t: "normal", s: "21:01:42  [PHYS] Baseline 12Hz. Heart rate: 72bpm." },
+      { t: "accent", s: "21:02:05  [WARN] Oscillation in Node 7-Theta." },
+      { t: "accent", s: "21:02:17  [ERR]  Feedback fluctuation pre-frontal." },
+      { t: "accent", s: "21:02:30  [SYNC] Phase-lock drifting; auto-comp active." },
+      { t: "danger", s: "21:14:44  [CRIT] NEURAL SPIKE. Motor cortex +440%." },
+      { t: "danger", s: "21:14:50  [SENS] Pupillary dilation: MAX. Galvanic: PEAK." },
+      { t: "danger", s: "21:14:55  [VOLT] Synaptic voltage >110mV. ERR_V_THR." },
+      { t: "danger", s: "21:15:02  [LOG]  Sustained excitation; bypass in safety shunt." },
+      { t: "danger", s: "21:15:05  [CRIT] Neurotransmitter saturation. Dopamine flood." },
+      { t: "danger", s: "21:15:08  [SYS]  Manual dampeners FAILED. Override FAILED." },
+      { t: "danger", s: "21:15:10  [HALT] !! TOTAL NEURAL OVERLOAD !! Dump initiated." },
+      { t: "danger", s: "21:15:12  [TLM]  Signal degradation detected." },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "21:15:15  [EOF]  Monitoring terminated. → SECURE_ROOT." },
+      { t: "dim",    s: "─────────────────────────────────────" },
+    ],
+  },
+  temperature: {
+    title: "[ FORENSIC DATA SHEET: THERMAL ANALYSIS ]",
+    lines: [
+      { t: "normal", s: "CASE REFERENCE: NB-IR-2147" },
+      { t: "normal", s: "SUBJECT: Rishab Sen" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "PARAMETER            READING" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "accent", s: "Body Temperature:    32.4°C" },
+      { t: "accent", s: "Room Temperature:    22°C" },
+      { t: "accent", s: "Measurement Time:    21:25" },
+      { t: "normal", s: "Method: Deep tissue digital probe" },
+      { t: "normal", s: "" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "NOTE: Estimated time of death may be" },
+      { t: "normal", s: "inferred using thermal decay analysis." },
+      { t: "normal", s: "" },
+      { t: "accent", s: "HINT: Normal body temp = 37.0°C" },
+      { t: "accent", s: "      Delta = 37.0 - 32.4 = 4.6°C" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "Sensor calibrated: ✓ VERIFIED" },
+      { t: "normal", s: "Chain of custody:  ✓ INTACT" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+    ],
+  },
+  timeline: {
+    title: "[ OFFICIAL INCIDENT TIMELINE — #992-ALPHA ]",
+    lines: [
+      { t: "normal", s: "INCIDENT REF: #992-ALPHA | SITE 4" },
+      { t: "normal", s: "DATE: 12 Oct 20XX" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "TIME    EVENT" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "21:00   Session Start: User SEN_R_931" },
+      { t: "normal", s: "" },
+      { t: "normal", s: "21:01   Interface Sync: 100% Signal Quality" },
+      { t: "normal", s: "" },
+      { t: "accent", s: "21:03   Network Latency Warning: Node 4-B" },
+      { t: "normal", s: "" },
+      { t: "danger", s: "21:04   Visual Confirmation: Subject unresponsive" },
+      { t: "normal", s: "" },
+      { t: "danger", s: "21:05   Facility Alert: Medical Emergency Level 2" },
+      { t: "normal", s: "" },
+      { t: "accent", s: "21:06   System Shutdown: Automated Safety Protocol" },
+      { t: "normal", s: "" },
+      { t: "normal", s: "21:08   Site Arrival: First Response Team" },
+      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "normal", s: "REPORT STATUS: OFFICIAL / SEALED" },
+      { t: "normal", s: "" },
+      { t: "danger", s: "NOTE: Neural log shows overload at 21:15:10" },
+      { t: "danger", s: "vs official collapse report at 21:04." },
+      { t: "danger", s: "Cross-reference with thermal data." },
+      { t: "dim",    s: "─────────────────────────────────────" },
+    ],
+  },
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function scoreQ3(text: string): number {
+  const lower = text.toLowerCase();
+  const kw = ["neural","overload","earlier","temperature","cooling","contradict","report","cortical","dampening","safety"];
+  const hits = kw.filter((k) => lower.includes(k)).length;
+  return hits >= 4 ? 40 : hits >= 2 ? 25 : hits >= 1 ? 10 : 0;
 }
 
-interface EvidenceFile {
-  title: string;
-  lines: EvidenceLine[];
-}
+const lineColor = (t: LineType): string => {
+  if (t === "accent") return "#ffaa44";
+  if (t === "danger") return "#ff3333";
+  if (t === "dim")    return "#551111";
+  return "#cc9999";
+};
 
-interface Message {
-  from: "ghost" | "user";
-  text: string;
-}
+const scanStyle: CSSProperties = {
+  position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10,
+  background: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)",
+};
 
-interface Scores {
-  q1: number;
-  q2: number;
-  q3: number;
-  bonus: number;
-}
-
-interface GhostIconProps {
-  size?: number;
-}
-
-interface EvidenceModalProps {
-  file: EvidenceKey | null;
-  onClose: () => void;
-}
-
-interface ChatMsgProps {
-  msg: Message;
-}
-
-// ── Ghost Icon ────────────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 const GhostIcon: FC<GhostIconProps> = ({ size = 40 }) => (
   <svg width={size} height={size} viewBox="0 0 10 12" style={{ imageRendering: "pixelated" }}>
     <rect x="2" y="0" width="6" height="1" fill="#a0d8ef" />
@@ -58,179 +219,6 @@ const GhostIcon: FC<GhostIconProps> = ({ size = 40 }) => (
   </svg>
 );
 
-// ── Evidence Data ─────────────────────────────────────────────────────────────
-const EVIDENCE: Record<EvidenceKey, EvidenceFile> = {
-  autopsy: {
-    title: "[ AUTOPSY REPORT — CLASSIFIED ]",
-    lines: [
-      { t: "normal", s: "SUBJECT: Rishab Sen | EMP-034" },
-      { t: "normal", s: "EXAMINER: Dr. K. Voss | Forensic Division" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-      { t: "normal", s: "FINDINGS:" },
-      { t: "normal", s: "" },
-      { t: "accent", s: "  › Neural overstimulation observed" },
-      { t: "accent", s: "    across cortical regions." },
-      { t: "normal", s: "" },
-      { t: "accent", s: "  › Cardiac arrest SECONDARY to" },
-      { t: "accent", s: "    neural overload — not primary." },
-      { t: "normal", s: "" },
-      { t: "accent", s: "  › No external trauma detected." },
-      { t: "accent", s: "    No contusions. No lacerations." },
-      { t: "normal", s: "" },
-      { t: "accent", s: "  › Toxicology: NEGATIVE" },
-      { t: "accent", s: "    No chemical agents present." },
-      { t: "normal", s: "" },
-      { t: "accent", s: "  › NeuroBand interface port:" },
-      { t: "accent", s: "    Severe burn marks detected." },
-      { t: "accent", s: "    Consistent with surge event." },
-      { t: "normal", s: "" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-      { t: "danger", s: "CAUSE OF DEATH: Neural overload" },
-      { t: "danger", s: "  via NeuroBand device failure." },
-      { t: "dim",    s: "─────────────────────────────────────" },
-    ],
-  },
-  neural: {
-    title: "[ NEURAL ACTIVITY LOG — RAW DATA ]",
-    lines: [
-      { t: "normal", s: "SOURCE: NeuroBand v2.1 | DEVICE-RS09" },
-      { t: "normal", s: "SESSION ID: NB-2024-0341" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-      { t: "normal", s: "TIMESTAMP     EVENT" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-      { t: "normal", s: "20:59:12  >>  Session initialized" },
-      { t: "normal", s: "21:00:00  >>  Cognitive load: 12%" },
-      { t: "normal", s: "21:01:33  >>  Neural sync: stable" },
-      { t: "accent", s: "21:02:07  >>  SPIKE DETECTED" },
-      { t: "accent", s: "              Amplitude: 847μV" },
-      { t: "accent", s: "              [THRESHOLD: 200μV]" },
-      { t: "accent", s: "21:02:44  >>  Secondary spike" },
-      { t: "accent", s: "              Amplitude: 1203μV" },
-      { t: "danger", s: "21:03:01  >>  !! SUSTAINED OVERLOAD !!" },
-      { t: "danger", s: "              Duration: 00:00:58" },
-      { t: "danger", s: "21:03:59  >>  SUBJECT UNRESPONSIVE" },
-      { t: "normal", s: "21:04:02  >>  Device auto-shutoff" },
-      { t: "normal", s: "21:04:02  >>  LOG TERMINATED" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-      { t: "accent", s: "WARNING: Anomalous spike at 21:02" },
-      { t: "accent", s: "precedes official report by 2 min." },
-      { t: "dim",    s: "─────────────────────────────────────" },
-    ],
-  },
-  temperature: {
-    title: "[ TEMPERATURE RECORD — FORENSICS ]",
-    lines: [
-      { t: "normal", s: "RECORDED BY: Auto-Sensor Unit 7B" },
-      { t: "normal", s: "DISCOVERY TIME: 21:15" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-      { t: "normal", s: "BODY TEMP AT DISCOVERY:" },
-      { t: "accent", s: "  32.4°C" },
-      { t: "normal", s: "" },
-      { t: "normal", s: "ROOM TEMPERATURE (Lab 7):" },
-      { t: "accent", s: "  22.0°C" },
-      { t: "normal", s: "" },
-      { t: "normal", s: "STANDARD COOLING RATE:" },
-      { t: "normal", s: "  ~1.0–1.5°C per hour" },
-      { t: "normal", s: "  (ambient adjusted)" },
-      { t: "normal", s: "" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-      { t: "normal", s: "NOTE: Use Forensic Estimation Module" },
-      { t: "normal", s: "to calculate time of death." },
-      { t: "normal", s: "" },
-      { t: "accent", s: "HINT: Normal body temp = 37.0°C" },
-      { t: "accent", s: "      Delta = 37.0 - 32.4 = 4.6°C" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-      { t: "normal", s: "Sensor calibrated: ✓ VERIFIED" },
-      { t: "normal", s: "Chain of custody: ✓ INTACT" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-    ],
-  },
-  timeline: {
-    title: "[ INCIDENT TIMELINE — OFFICIAL ]",
-    lines: [
-      { t: "normal", s: "SOURCE: Security Division Report" },
-      { t: "normal", s: "FILED BY: SEC-02 | 22:30 same day" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-      { t: "normal", s: "OFFICIAL SEQUENCE OF EVENTS:" },
-      { t: "normal", s: "" },
-      { t: "accent", s: "  21:00  Test protocol initiated." },
-      { t: "accent", s: "         Authorized personnel present." },
-      { t: "normal", s: "" },
-      { t: "accent", s: "  21:03  Anomaly flagged by system." },
-      { t: "accent", s: "         Engineer Sen alerted." },
-      { t: "normal", s: "" },
-      { t: "danger", s: "  21:04  Engineer collapse reported." },
-      { t: "danger", s: "         Medical team dispatched." },
-      { t: "normal", s: "" },
-      { t: "normal", s: "  21:05  Security notified." },
-      { t: "normal", s: "         Lab 7 sealed." },
-      { t: "normal", s: "" },
-      { t: "normal", s: "  21:12  Medical team on scene." },
-      { t: "normal", s: "" },
-      { t: "normal", s: "  21:15  Body temperature recorded." },
-      { t: "normal", s: "" },
-      { t: "dim",    s: "─────────────────────────────────────" },
-      { t: "normal", s: "REPORT STATUS: OFFICIAL / SEALED" },
-      { t: "normal", s: "" },
-      { t: "accent", s: "NOTE: Compare this timeline with" },
-      { t: "accent", s: "forensic temperature estimate." },
-      { t: "dim",    s: "─────────────────────────────────────" },
-    ],
-  },
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function calculateTOD(bodyTemp: string, roomTemp: string, reportTimeStr: string): string | null {
-  const tempDelta = 37.0 - parseFloat(bodyTemp);
-  const ambientDiff = parseFloat(bodyTemp) - parseFloat(roomTemp);
-  if (ambientDiff <= 0) return null;
-  const minutesSinceDeath = Math.round((tempDelta / ambientDiff) * 55);
-  const [h, m] = reportTimeStr.split(":").map(Number);
-  const deathMinutes = h * 60 + m - minutesSinceDeath;
-  const dh = Math.floor(deathMinutes / 60) % 24;
-  const dm = Math.abs(deathMinutes % 60);
-  return `${String(dh).padStart(2, "0")}:${String(dm).padStart(2, "0")}`;
-}
-
-function scoreQ3(text: string): { score: number; bonus: number } {
-  const lower = text.toLowerCase();
-  const keywords = ["neural", "overload", "earlier", "temperature", "cooling", "contradict", "report"];
-  const hits = keywords.filter((k) => lower.includes(k)).length;
-  const score = hits >= 4 ? 60 : hits >= 2 ? 40 : hits >= 1 ? 20 : 0;
-  const bonus = text.length <= 160 && hits >= 3 ? 20 : 0;
-  return { score, bonus };
-}
-
-function matchQ1(text: string): string | null {
-  const t = text.toLowerCase();
-  if (t.includes("neural") || t.includes("overload")) return "Neural overload";
-  if (t.includes("cardiac") || t.includes("heart")) return "Cardiac arrest";
-  if (t.includes("poison") || t.includes("chemical") || t.includes("toxic")) return "Chemical poisoning";
-  if (t.includes("trauma") || t.includes("external") || t.includes("physical")) return "External trauma";
-  return null;
-}
-
-function matchQ2(text: string): "Yes" | "No" | null {
-  const t = text.toLowerCase();
-  if (t.includes("yes") || t.includes("correct") || t.includes("contradict") || t === "y") return "Yes";
-  if (t.includes("no") || t.includes("doesn") || t.includes("not") || t === "n") return "No";
-  return null;
-}
-
-const lineColor = (t: LineType): string => {
-  if (t === "accent") return "#ffaa44";
-  if (t === "danger") return "#ff3333";
-  if (t === "dim")    return "#551111";
-  return "#cc9999";
-};
-
-// ── Shared styles ─────────────────────────────────────────────────────────────
-const scanStyle: CSSProperties = {
-  position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10,
-  background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)",
-};
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 const GlitchTitle: FC = () => {
   const [g, setG] = useState(false);
   useEffect(() => {
@@ -242,64 +230,43 @@ const GlitchTitle: FC = () => {
       fontFamily: "'Courier New', monospace", fontSize: 13, fontWeight: 700,
       letterSpacing: 4, color: "#ff3333",
       textShadow: g ? "3px 0 #00ffff, -3px 0 #ff00ff" : "0 0 12px #ff333388",
-    }}>
-      HYBRID AUTOPSY TERMINAL
-    </span>
+    }}>HYBRID AUTOPSY TERMINAL</span>
   );
 };
 
 const Cursor: FC = () => {
   const [on, setOn] = useState(true);
-  useEffect(() => {
-    const iv = setInterval(() => setOn((p) => !p), 530);
-    return () => clearInterval(iv);
-  }, []);
+  useEffect(() => { const iv = setInterval(() => setOn((p) => !p), 530); return () => clearInterval(iv); }, []);
   return <span style={{ color: "#551111", opacity: on ? 1 : 0 }}>█</span>;
 };
 
-const EvidenceModal: FC<EvidenceModalProps> = ({ file, onClose }) => {
+const EvidenceModal: FC<ModalProps> = ({ file, onClose }) => {
   if (!file) return null;
   const data = EVIDENCE[file];
   return (
-    <div
-      onClick={onClose}
-      style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center" }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "#0c0000", border: "1px solid #ff3333",
-          boxShadow: "0 0 30px #ff000044, inset 0 0 30px #0a000088",
-          maxWidth: 520, width: "90%", maxHeight: "80vh", overflowY: "auto",
-          padding: "20px 24px", position: "relative",
-          fontFamily: "'Courier New', monospace", fontSize: 11,
-        }}
-      >
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.88)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: "#0c0000", border: "1px solid #ff3333",
+        boxShadow: "0 0 30px #ff000044, inset 0 0 30px #0a000088",
+        maxWidth: 520, width: "90%", maxHeight: "80vh", overflowY: "auto",
+        padding: "20px 24px", position: "relative", fontFamily: "'Courier New', monospace", fontSize: 11,
+      }}>
         <div style={scanStyle} />
-        <div style={{ color: "#ff5555", fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 14 }}>
-          {data.title}
-        </div>
+        <div style={{ color: "#ff5555", fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 14 }}>{data.title}</div>
         {data.lines.map((line, i) => (
-          <div key={i} style={{ color: lineColor(line.t), lineHeight: "1.7", whiteSpace: "pre" }}>
-            {line.s || "\u00A0"}
-          </div>
+          <div key={i} style={{ color: lineColor(line.t), lineHeight: "1.7", whiteSpace: "pre" }}>{line.s || "\u00A0"}</div>
         ))}
-        <button
-          onClick={onClose}
-          style={{
-            marginTop: 18, background: "transparent", border: "1px solid #ff3333",
-            color: "#ff3333", fontFamily: "'Courier New', monospace", fontSize: 11,
-            padding: "6px 16px", cursor: "pointer", letterSpacing: 2,
-          }}
-        >
-          [ CLOSE FILE ]
-        </button>
+        <button onClick={onClose} style={{
+          marginTop: 18, background: "transparent", border: "1px solid #ff3333",
+          color: "#ff3333", fontFamily: "'Courier New', monospace", fontSize: 11,
+          padding: "6px 16px", cursor: "pointer", letterSpacing: 2,
+        }}>[ CLOSE FILE ]</button>
       </div>
     </div>
   );
 };
 
-const ChatMsg: FC<ChatMsgProps> = ({ msg }) => {
+const ChatMsg: FC<MsgProps> = ({ msg }) => {
   const isBot = msg.from === "ghost";
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 12, flexDirection: isBot ? "row" : "row-reverse", alignItems: "flex-start" }}>
@@ -314,42 +281,103 @@ const ChatMsg: FC<ChatMsgProps> = ({ msg }) => {
         border: isBot ? "1px solid #00e5cc33" : "1px solid #ff333333",
         borderRadius: isBot ? "2px 8px 8px 8px" : "8px 2px 8px 8px",
         fontFamily: "'Courier New', monospace", fontSize: 11, lineHeight: 1.6,
-        color: isBot ? "#a0e8d8" : "#ffaaaa",
-        whiteSpace: "pre-wrap",
-      }}>
-        {msg.text}
-      </div>
+        color: isBot ? "#a0e8d8" : "#ffaaaa", whiteSpace: "pre-wrap",
+      }}>{msg.text}</div>
     </div>
+  );
+};
+
+// ── Option Button ─────────────────────────────────────────────────────────────
+const OptBtn: FC<{ label: string; onClick: () => void; disabled?: boolean }> = ({ label, onClick, disabled }) => {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "block", width: "100%", background: hover && !disabled ? "#0d2a3a" : "transparent",
+        border: `1px solid ${hover && !disabled ? "#00e5cc66" : "#00e5cc22"}`,
+        color: hover && !disabled ? "#00e5cc" : "#5599aa",
+        fontFamily: "'Courier New', monospace", fontSize: 10, letterSpacing: 1,
+        padding: "8px 12px", marginBottom: 6, cursor: disabled ? "default" : "pointer",
+        textAlign: "left", opacity: disabled ? 0.35 : 1,
+        boxShadow: hover && !disabled ? "0 0 8px #00e5cc22" : "none",
+        transition: "all 0.15s",
+      }}
+    >{label}</button>
+  );
+};
+
+// ── Hint Button ───────────────────────────────────────────────────────────────
+const HintBtn: FC<{ level: "weak" | "medium" | "direct"; used: boolean; onClick: () => void }> = ({ level, used, onClick }) => {
+  const [hover, setHover] = useState(false);
+  const h = HINTS[level];
+  return (
+    <button
+      onClick={used ? undefined : onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        width: "100%", marginBottom: 6,
+        background: used ? "#0d0800" : hover ? "#2a1400" : "#1a0c00",
+        border: `1px solid ${used ? "#553300" : hover ? "#ffaa44aa" : "#ffaa4455"}`,
+        color: used ? "#553300" : hover ? "#ffcc66" : "#cc8833",
+        fontFamily: "'Courier New', monospace", fontSize: 10, letterSpacing: 1,
+        padding: "8px 12px", cursor: used ? "default" : "pointer",
+        textDecoration: used ? "line-through" : "none",
+        boxShadow: !used && hover ? "0 0 10px #ffaa4422" : "none",
+        transition: "all 0.15s",
+      }}
+    >
+      <span>{h.label}</span>
+      <span style={{ fontSize: 9, color: used ? "#442200" : hover ? "#ffaa44" : "#884400" }}>
+        {used ? "USED" : `-${h.cost} pts`}
+      </span>
+    </button>
   );
 };
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function AutopsyTerminal() {
-  const mono  = "'Courier New', monospace";
-  const red   = "#ff3333";
+  const mono   = "'Courier New', monospace";
+  const red    = "#ff3333";
   const dimRed = "#551111";
-  const teal  = "#00e5cc";
+  const teal   = "#00e5cc";
 
-  const [openFile,     setOpenFile]     = useState<EvidenceKey | null>(null);
-  const [openedFiles,  setOpenedFiles]  = useState<EvidenceKey[]>([]);
+  // Evidence
+  const [openFile,    setOpenFile]    = useState<EvidenceKey | null>(null);
+  const [openedFiles, setOpenedFiles] = useState<EvidenceKey[]>([]);
 
-  const [bodyTemp,    setBodyTemp]    = useState<string>("");
-  const [roomTemp,    setRoomTemp]    = useState<string>("");
-  const [reportTime,  setReportTime]  = useState<string>("");
-  const [todResult,   setTodResult]   = useState<string | null>(null);
-  const [todError,    setTodError]    = useState<string>("");
+  // Forensic module
+  const [bodyTemp,  setBodyTemp]  = useState<string>("");
+  const [roomTemp,  setRoomTemp]  = useState<string>("");
+  const [todShown,  setTodShown]  = useState<boolean>(false);
+  const [todError,  setTodError]  = useState<string>("");
 
-  const [messages,  setMessages]  = useState<Message[]>([]);
-  const [inputVal,  setInputVal]  = useState<string>("");
-  const [chatStep,  setChatStep]  = useState<ChatStep>("idle");
-  const [typing,    setTyping]    = useState<boolean>(false);
-  const [scores,    setScores]    = useState<Scores>({ q1: 0, q2: 0, q3: 0, bonus: 0 });
-  const [submitted, setSubmitted] = useState<boolean>(false);
+  // Chat
+  const [messages,   setMessages]   = useState<Message[]>([]);
+  const [inputVal,   setInputVal]   = useState<string>("");
+  const [chatStep,   setChatStep]   = useState<ChatStep>("idle");
+  const [typing,     setTyping]     = useState<boolean>(false);
+  const [scores,     setScores]     = useState<Scores>({ q1: 0, q2: 0, q3: 0 });
+  const [submitted,  setSubmitted]  = useState<boolean>(false);
+
+  // Q answers
+  const [pendingQ1, setPendingQ1] = useState<string>("");
+
+  // Hints — all usable, cumulative penalty
+  const [hintsUsed,    setHintsUsed]   = useState<Set<"weak" | "medium" | "direct">>(new Set());
+  const [hintPenalty,  setHintPenalty] = useState<number>(0);
+
+  // Q1/Q2 locked after selection
+  const [q1Locked, setQ1Locked] = useState<boolean>(false);
+  const [q2Locked, setQ2Locked] = useState<boolean>(false);
 
   const chatRef = useRef<HTMLDivElement>(null);
-
-  const scroll = () =>
-    setTimeout(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, 60);
+  const scroll  = () => setTimeout(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, 60);
 
   const addBot = (text: string, delay = 0) => {
     setTyping(true);
@@ -371,116 +399,69 @@ export default function AutopsyTerminal() {
     setTimeout(() => addBot("When you're ready, type 'ready' or click [ BEGIN ANALYSIS ]."), 2500);
   }, []);
 
-  const startQ1 = () => {
-    setChatStep("q1");
-    addBot("Initiating forensic analysis sequence.", 200);
-    addBot("Q1 — PRIMARY FAILURE IDENTIFICATION\nWhat was the primary cause of death?", 900);
+  // ── Q1 click ─────────────────────────────────────────────────────────────
+  const handleQ1Click = (val: string) => {
+    if (q1Locked) return;
+    setQ1Locked(true);
+    setPendingQ1(val);
+    addUser(val);
+    setTimeout(() => {
+      setChatStep("q2");
+      addBot("Q2 — CRITICAL SYSTEM FAILURE\nWhich system function failed to stop the abnormal neural activity?\n\nClick your answer below. Use hints if needed.");
+    }, 600);
   };
 
-  const handleSend = () => {
-    const text = inputVal.trim();
-    if (!text) return;
-    setInputVal("");
-    addUser(text);
+  // ── Q2 click ─────────────────────────────────────────────────────────────
+  const handleQ2Click = (val: string) => {
+    if (q2Locked) return;
+    setQ2Locked(true);
+    addUser(val);
+    addBot("Answers logged. Evaluating both responses...", 500);
+    setTimeout(() => validateBoth(pendingQ1, val), 1200);
+  };
 
-    if (chatStep === "idle") {
-      if (/ready|begin|start/i.test(text)) {
-        setTimeout(() => startQ1(), 400);
-      } else {
-        addBot("Type 'ready' to begin the analysis, or continue reviewing the evidence files.", 500);
-      }
-      return;
-    }
+  // ── Hint click ────────────────────────────────────────────────────────────
+  const handleHintClick = (level: "weak" | "medium" | "direct") => {
+    if (hintsUsed.has(level)) return;
+    setHintsUsed((prev) => new Set([...prev, level]));
+    setHintPenalty((p) => p + HINTS[level].cost);
+    addBot(HINTS[level].text, 300);
+  };
 
-    if (chatStep === "q1") {
-      const match = matchQ1(text);
-      if (!match) {
-        addBot("I didn't recognise that. Try: Cardiac arrest, Chemical poisoning, Neural overload, or External trauma.", 500);
-        return;
-      }
-      const q1Score = match === "Neural overload" ? 120 : 0;
-      setScores((p) => ({ ...p, q1: q1Score }));
-      addBot(
-        match === "Neural overload"
-          ? `Confirmed: ${match}. Consistent with NeuroBand device failure and autopsy findings. [+120 pts]`
-          : `Logged: ${match}. Cross-reference with the autopsy report before finalising your deduction.`,
-        600,
-      );
-      setTimeout(() => {
-        setChatStep("q2");
-        addBot("Q2 — TIMELINE CONTRADICTION\nDoes the body temperature evidence contradict the official incident timeline?", 1200);
-      }, 1800);
-      return;
-    }
-
-    if (chatStep === "q2") {
-      const match = matchQ2(text);
-      if (!match) {
-        addBot("Please answer Yes or No.", 500);
-        return;
-      }
-      const q2Score = match === "Yes" ? 100 : 0;
-      setScores((p) => ({ ...p, q2: q2Score }));
-      addBot(
-        match === "Yes"
-          ? "Correct. The forensic estimate places death earlier than the officially reported collapse time. [+100 pts]"
-          : "Re-examine the temperature module output versus the official 21:04 timestamp.",
-        600,
-      );
+  // ── Validation ────────────────────────────────────────────────────────────
+  const validateBoth = (q1: string, q2: string) => {
+    const q1ok = q1 === Q1_CORRECT;
+    const q2ok = q2 === Q2_CORRECT;
+    if (q1ok && q2ok) {
+      const q2score = Math.max(0, 30 - hintPenalty);
+      setScores((p) => ({ ...p, q1: 30, q2: q2score }));
+      addBot("Both answers confirmed. Consistent with the neural activity log. Well deduced.", 600);
       setTimeout(() => {
         setChatStep("q3");
         addBot("Q3 — ONE-LINE INFERENCE\nIn max 200 characters, summarise what the evidence reveals. Type your inference below.", 1200);
       }, 1800);
-      return;
-    }
-
-    if (chatStep === "q3") {
-      if (text.length > 200) {
-        addBot(`Your inference is ${text.length} characters. Please keep it under 200.`, 400);
-        return;
-      }
-      const { score, bonus } = scoreQ3(text);
-      const newScores: Scores = { ...scores, q3: score, bonus };
-      const total = newScores.q1 + newScores.q2 + score + bonus;
-      setScores(newScores);
-      setChatStep("done");
-      setSubmitted(true);
-
-      addBot("Inference logged. Running final analysis...", 500);
+    } else {
+      addBot("One or more answers is incorrect. Review the evidence and try again.", 700);
       setTimeout(() => {
-        addBot(
-          `ANALYSIS COMPLETE.\n\nQ1: ${newScores.q1}/120 pts\nQ2: ${newScores.q2}/100 pts\nQ3: ${score}/60 pts\nBonus: +${bonus} pts\n──────────────────\nTOTAL: ${total}/300 pts`,
-          1600,
-        );
-      }, 2200);
-      setTimeout(() => {
-        addBot(
-          total >= 250
-            ? "Exceptional deduction. The physical evidence exposes a critical gap in the official narrative. This investigation is not over."
-            : total >= 150
-              ? "Solid analysis. Some connections missed — revisit the temperature data and cross-reference with the neural log."
-              : "Analysis weak. The evidence files contain the answers. Review and re-examine.",
-          3200,
-        );
-      }, 3800);
-      return;
-    }
-
-    if (chatStep === "done") {
-      addBot("Analysis complete. All responses have been logged.", 400);
+        setPendingQ1("");
+        setQ1Locked(false);
+        setQ2Locked(false);
+        setHintsUsed(new Set());
+        setHintPenalty(0);
+        setChatStep("q1");
+        addBot("Q1 — PRIMARY FAILURE IDENTIFICATION\nWhat was the primary cause of death?\n\nClick your answer below.", 1200);
+      }, 2000);
     }
   };
 
+  // ── Forensic calc ─────────────────────────────────────────────────────────
   const handleCalc = () => {
     setTodError("");
-    const bt = parseFloat(bodyTemp);
-    const rt = parseFloat(roomTemp);
-    if (!bodyTemp || !roomTemp || !reportTime) { setTodError("ALL FIELDS REQUIRED"); return; }
-    if (isNaN(bt) || isNaN(rt))               { setTodError("INVALID TEMPERATURE VALUES"); return; }
-    if (bt >= 37 || bt <= rt)                 { setTodError("IMPLAUSIBLE TEMPERATURE VALUES"); return; }
-    if (!/^\d{2}:\d{2}$/.test(reportTime))   { setTodError("TIME FORMAT: HH:MM"); return; }
-    const result = calculateTOD(bodyTemp, roomTemp, reportTime);
-    setTodResult(result);
+    const bt = parseFloat(bodyTemp), rt = parseFloat(roomTemp);
+    if (!bodyTemp || !roomTemp)   { setTodError("BOTH TEMPERATURE FIELDS REQUIRED"); return; }
+    if (isNaN(bt) || isNaN(rt))   { setTodError("INVALID TEMPERATURE VALUES"); return; }
+    if (bt >= 37 || bt <= rt)     { setTodError("IMPLAUSIBLE TEMPERATURE VALUES"); return; }
+    setTodShown(true);
   };
 
   const handleFileOpen = (key: EvidenceKey) => {
@@ -488,24 +469,81 @@ export default function AutopsyTerminal() {
     if (!openedFiles.includes(key)) setOpenedFiles((p) => [...p, key]);
   };
 
-  const totalScore = scores.q1 + scores.q2 + scores.q3 + scores.bonus;
+  // ── Chat input (only for idle + q3) ──────────────────────────────────────
+  const handleSend = () => {
+    const text = inputVal.trim();
+    if (!text) return;
+    setInputVal("");
 
-  const evidenceButtons: [EvidenceKey, string][] = [
+    if (chatStep === "idle") {
+      addUser(text);
+      if (/ready|begin|start/i.test(text)) {
+        setTimeout(() => startQ1(), 400);
+      } else {
+        addBot("Type 'ready' to begin the analysis, or review the evidence files.", 500);
+      }
+      return;
+    }
+
+    if (chatStep === "q3") {
+      addUser(text);
+      if (text.length > 200) {
+        addBot(`Your inference is ${text.length} characters. Please keep it under 200.`, 400);
+        return;
+      }
+      const q3score  = scoreQ3(text);
+      const newQ2    = Math.max(0, 30 - hintPenalty);
+      const newScores: Scores = { q1: scores.q1, q2: newQ2, q3: q3score };
+      const total    = newScores.q1 + newScores.q2 + q3score;
+      setScores(newScores);
+      setChatStep("done");
+      setSubmitted(true);
+      const penNote  = hintPenalty > 0 ? ` (hint penalty: -${hintPenalty})` : "";
+      addBot("Inference logged. Running final analysis...", 500);
+      setTimeout(() => {
+        addBot(
+          `ANALYSIS COMPLETE.\n\nQ1: ${newScores.q1}/30 pts\nQ2: ${newScores.q2}/30 pts${penNote}\n──────────────────\nTOTAL: ${newScores.q1 + newScores.q2}/60 pts`,
+          1600,
+        );
+      }, 2200);
+      setTimeout(() => {
+        addBot(
+          total >= 85
+            ? "Exceptional deduction. The physical evidence exposes a critical gap in the official narrative. This investigation is not over."
+            : "",
+          3200,
+        );
+      }, 3800);
+      return;
+    }
+
+    if (chatStep === "done") {
+      addUser(text);
+      addBot("Analysis complete. All responses have been logged.", 400);
+    }
+  };
+
+  const startQ1 = () => {
+    setQ1Locked(false);
+    setQ2Locked(false);
+    setChatStep("q1");
+    addBot("Initiating forensic analysis sequence.", 200);
+    addBot("Q1 — PRIMARY FAILURE IDENTIFICATION\nWhat was the primary cause of death?\n\nClick your answer below.", 900);
+  };
+
+  const totalScore = scores.q1 + scores.q2 + scores.q3;
+
+  const evidenceBtns: [EvidenceKey, string][] = [
     ["autopsy",     "Autopsy Report"],
     ["neural",      "Neural Activity Log"],
     ["temperature", "Temperature Record"],
     ["timeline",    "Incident Timeline"],
   ];
 
-  const scoreRows: [string, number, number][] = [
-    ["Q1", scores.q1, 120],
-    ["Q2", scores.q2, 100],
-    ["Q3", scores.q3, 60],
-    ["BONUS", scores.bonus, 20],
-  ];
+  const inputDisabled = chatStep === "done" || chatStep === "q1" || chatStep === "q2";
 
   return (
-    <div style={{ minHeight: "100vh", background: "#050000", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 12px 40px", fontFamily: mono, position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: "#050000", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 12px 40px", fontFamily: mono }}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, background: "radial-gradient(ellipse at 50% 0%, #1a000022 0%, transparent 70%)" }} />
       <div style={scanStyle} />
 
@@ -526,11 +564,8 @@ export default function AutopsyTerminal() {
           </div>
         </div>
         <div style={{ marginTop: 10, display: "flex", gap: 20, flexWrap: "wrap" }}>
-          {(["CASE", "NeuroBand Incident"], [["CASE", "NeuroBand Incident"], ["SUBJECT", "Rishab Sen"], ["STATUS", "Post-Incident Analysis"]] as [string, string][]).map(([k, v]) => (
-            <div key={k}>
-              <span style={{ color: dimRed, fontSize: 10 }}>{k}: </span>
-              <span style={{ color: "#cc6666", fontSize: 10 }}>{v}</span>
-            </div>
+          {([["CASE","NeuroBand Incident"],["SUBJECT","Rishab Sen"],["STATUS","Post-Incident Analysis"]] as [string,string][]).map(([k,v]) => (
+            <div key={k}><span style={{ color: dimRed, fontSize: 10 }}>{k}: </span><span style={{ color: "#cc6666", fontSize: 10 }}>{v}</span></div>
           ))}
         </div>
       </div>
@@ -538,103 +573,71 @@ export default function AutopsyTerminal() {
       {/* ── Grid ── */}
       <div style={{ width: "100%", maxWidth: 960, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
 
-        {/* Left column */}
+        {/* Left */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
           {/* Evidence files */}
           <div style={{ border: `1px solid ${dimRed}`, background: "#0a0000", padding: "14px 16px", position: "relative", overflow: "hidden" }}>
             <div style={scanStyle} />
-            <div style={{ color: red, fontSize: 10, letterSpacing: 3, marginBottom: 10, borderBottom: `1px solid ${dimRed}`, paddingBottom: 8 }}>
-              ── EVIDENCE FILES ──────────────────────
-            </div>
+            <div style={{ color: red, fontSize: 13, letterSpacing: 3, marginBottom: 12, borderBottom: `1px solid ${dimRed}`, paddingBottom: 10, fontWeight: 700 }}>── EVIDENCE FILES ──────────────────────</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {evidenceButtons.map(([key, label]) => {
+              {evidenceBtns.map(([key, label]) => {
                 const opened = openedFiles.includes(key);
                 return (
-                  <button
-                    key={key}
-                    onClick={() => handleFileOpen(key)}
-                    style={{
-                      background: opened ? "#1a0808" : "transparent",
-                      border: `1px solid ${opened ? red : dimRed}`,
-                      color: opened ? "#ff9999" : "#884444",
-                      fontFamily: mono, fontSize: 10, padding: "10px 8px",
-                      cursor: "pointer", textAlign: "left", transition: "all 0.2s",
-                      boxShadow: opened ? "0 0 10px #ff000033" : "none",
-                    }}
-                  >
-                    <div style={{ fontSize: 8, marginBottom: 2, color: opened ? "#ff5555" : "#442222" }}>
-                      {opened ? "▣ ACCESSED" : "▢ CLASSIFIED"}
-                    </div>
+                  <button key={key} onClick={() => handleFileOpen(key)} style={{
+                    background: opened ? "#1a0808" : "transparent",
+                    border: `1px solid ${opened ? red : dimRed}`,
+                    color: opened ? "#ff9999" : "#884444",
+                    fontFamily: mono, fontSize: 12, padding: "12px 10px",
+                    cursor: "pointer", textAlign: "left", transition: "all 0.2s",
+                    boxShadow: opened ? "0 0 10px #ff000033" : "none",
+                  }}>
+                    <div style={{ fontSize: 9, marginBottom: 3, color: opened ? "#ff5555" : "#442222" }}>{opened ? "▣ ACCESSED" : "▢ CLASSIFIED"}</div>
                     [ {label} ]
                   </button>
                 );
               })}
             </div>
-            <div style={{ marginTop: 10, color: "#442222", fontSize: 9 }}>{openedFiles.length}/4 files accessed</div>
+            <div style={{ marginTop: 10, color: "#664444", fontSize: 10 }}>{openedFiles.length}/4 files accessed</div>
           </div>
 
           {/* Forensic module */}
           <div style={{ border: `1px solid ${dimRed}`, background: "#0a0000", padding: "14px 16px", position: "relative", overflow: "hidden", flexGrow: 1 }}>
             <div style={scanStyle} />
-            <div style={{ color: red, fontSize: 10, letterSpacing: 3, marginBottom: 4, borderBottom: `1px solid ${dimRed}`, paddingBottom: 8 }}>
-              ── FORENSIC ESTIMATION MODULE ──────────
-            </div>
-            <div style={{ color: "#552222", fontSize: 9, marginBottom: 12 }}>Newton's Law of Cooling · Simplified Estimation</div>
-
-            {(
-              [
-                { label: "Body Temperature (°C):", val: bodyTemp, set: setBodyTemp, ph: "°C" },
-                { label: "Room Temperature (°C):", val: roomTemp, set: setRoomTemp, ph: "°C" },
-                { label: "Official Report Time:",  val: reportTime, set: setReportTime, ph: "HH:MM" },
-              ] as { label: string; val: string; set: (v: string) => void; ph: string }[]
-            ).map(({ label, val, set, ph }) => (
+            <div style={{ color: red, fontSize: 13, letterSpacing: 3, marginBottom: 6, borderBottom: `1px solid ${dimRed}`, paddingBottom: 10, fontWeight: 700 }}>── FORENSIC ESTIMATION MODULE ──────────</div>
+            <div style={{ color: "#774444", fontSize: 10, marginBottom: 14 }}>Newton's Law of Cooling · Simplified Estimation</div>
+            {([
+              { label: "Body Temperature (°C):", val: bodyTemp, set: setBodyTemp },
+              { label: "Room Temperature (°C):", val: roomTemp, set: setRoomTemp },
+            ] as { label: string; val: string; set: (v: string) => void }[]).map(({ label, val, set }) => (
               <div key={label} style={{ marginBottom: 10 }}>
-                <div style={{ color: "#aa5555", fontSize: 10, marginBottom: 4 }}>{label}</div>
-                <input
-                  value={val}
-                  onChange={(e) => set(e.target.value)}
-                  placeholder={ph}
-                  style={{ background: "#0c0000", border: `1px solid ${dimRed}`, color: "#ff9999", fontFamily: mono, fontSize: 11, padding: "6px 10px", width: "100%", outline: "none" }}
+                <div style={{ color: "#cc6666", fontSize: 11, marginBottom: 5 }}>{label}</div>
+                <input value={val} onChange={(e) => set(e.target.value)} placeholder="°C"
+                  style={{ background: "#0c0000", border: `1px solid ${dimRed}`, color: "#ff9999", fontFamily: mono, fontSize: 12, padding: "8px 12px", width: "100%", outline: "none" }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = red)}
                   onBlur={(e)  => (e.currentTarget.style.borderColor = dimRed)}
                 />
               </div>
             ))}
-
             {todError && <div style={{ color: red, fontSize: 9, marginBottom: 8 }}>⚠ {todError}</div>}
-
-            <button
-              onClick={handleCalc}
-              style={{ background: "#1a0000", border: `1px solid ${red}`, color: red, fontFamily: mono, fontSize: 10, letterSpacing: 2, padding: "8px 14px", cursor: "pointer", width: "100%", boxShadow: "0 0 10px #ff000033" }}
-            >
+            <button onClick={handleCalc} style={{ background: "#1a0000", border: `1px solid ${red}`, color: red, fontFamily: mono, fontSize: 11, letterSpacing: 2, padding: "10px 14px", cursor: "pointer", width: "100%", boxShadow: "0 0 14px #ff000044" }}>
               [ CALCULATE ESTIMATED TIME OF DEATH ]
             </button>
-
             <div style={{ marginTop: 14, borderTop: `1px solid ${dimRed}`, paddingTop: 10 }}>
-              <div style={{ color: "#aa5555", fontSize: 10, marginBottom: 6 }}>Estimated Time of Death:</div>
-              <div style={{
-                background: "#0c0000",
-                border: `1px solid ${todResult ? red : dimRed}`,
-                padding: "10px 14px", fontSize: 18, letterSpacing: 4,
-                color: todResult ? red : "#331111",
-                boxShadow: todResult ? "0 0 20px #ff000044" : "none",
-                textAlign: "center", fontWeight: 700,
-              }}>
-                {todResult ? `~${todResult}` : "--:--"}
+              <div style={{ color: "#cc6666", fontSize: 11, marginBottom: 8, fontWeight: 700 }}>Estimated Time of Death:</div>
+              <div style={{ background: "#0c0000", border: `1px solid ${todShown ? red : dimRed}`, padding: "12px 14px", fontSize: 22, letterSpacing: 5, color: todShown ? red : "#331111", boxShadow: todShown ? "0 0 20px #ff000044" : "none", textAlign: "center", fontWeight: 700 }}>
+                {todShown ? "~21:15" : "--:--"}
               </div>
-              {todResult && (
+              {todShown && (
                 <div style={{ marginTop: 8, color: "#886644", fontSize: 9, lineHeight: 1.6 }}>
-                  ⚠ Official Report: 21:04<br />
-                  ⚠ Est. Time of Death: {todResult}<br />
-                  ⚠ DISCREPANCY DETECTED
+                  ⚠ Official Report: 21:04<br />⚠ Est. Time of Death: 21:15<br />⚠ DISCREPANCY DETECTED
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Right column — Ghost chat */}
+        {/* Right — Ghost */}
         <div style={{ border: "1px solid #00e5cc33", background: "#060d18", display: "flex", flexDirection: "column", minHeight: 600, boxShadow: "0 0 30px #00e5cc11" }}>
 
           {/* Ghost header */}
@@ -644,19 +647,17 @@ export default function AutopsyTerminal() {
             </div>
             <div>
               <div style={{ color: teal, fontSize: 12, letterSpacing: 4, fontWeight: 700 }}>GHOST41_ID</div>
-              <div style={{ color: "#336677", fontSize: 9, letterSpacing: 2 }}>
-                INVESTIGATION ASSISTANT · <span style={{ color: "#00cc88" }}>ONLINE</span>
-              </div>
+              <div style={{ color: "#336677", fontSize: 9, letterSpacing: 2 }}>INVESTIGATION ASSISTANT · <span style={{ color: "#00cc88" }}>ONLINE</span></div>
             </div>
             {submitted && (
               <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                <div style={{ color: teal, fontSize: 11, letterSpacing: 2 }}>{totalScore}/300</div>
+                <div style={{ color: teal, fontSize: 11, letterSpacing: 2 }}>{totalScore}/100</div>
                 <div style={{ color: "#336677", fontSize: 9 }}>FINAL SCORE</div>
               </div>
             )}
           </div>
 
-          {/* Chat messages */}
+          {/* Chat */}
           <div ref={chatRef} style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column" }}>
             {messages.map((m, i) => <ChatMsg key={i} msg={m} />)}
             {typing && (
@@ -669,13 +670,49 @@ export default function AutopsyTerminal() {
             )}
           </div>
 
+          {/* Q1 clickable options */}
+          {chatStep === "q1" && (
+            <div style={{ padding: "10px 14px", borderTop: "2px solid #00e5cc33", background: "#030b14" }}>
+              <div style={{ color: "#00e5cc99", fontSize: 9, letterSpacing: 3, marginBottom: 10 }}>▶ SELECT CAUSE OF DEATH</div>
+              {Q1_OPTIONS.map((opt, i) => (
+                <OptBtn key={opt} label={`${String.fromCharCode(65+i)}. ${opt}`} onClick={() => handleQ1Click(opt)} disabled={q1Locked} />
+              ))}
+            </div>
+          )}
+
+          {/* Q2 clickable options + hints */}
+          {chatStep === "q2" && (
+            <div>
+              {/* Options */}
+              <div style={{ padding: "10px 14px", borderTop: "2px solid #00e5cc33", background: "#030b14" }}>
+                <div style={{ color: "#00e5cc99", fontSize: 9, letterSpacing: 3, marginBottom: 10 }}>▶ SELECT FAILED SYSTEM FUNCTION</div>
+                {Q2_OPTIONS.map((opt, i) => (
+                  <OptBtn key={opt} label={`${String.fromCharCode(65+i)}. ${opt}`} onClick={() => handleQ2Click(opt)} disabled={q2Locked} />
+                ))}
+              </div>
+
+              {/* Hint panel */}
+              <div style={{ padding: "12px 14px", borderTop: "2px solid #ffaa4455", background: "#120a00" }}>
+                <div style={{ color: "#ffaa44", fontSize: 9, letterSpacing: 3, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 11 }}>⚠</span> HINTS — CLICK TO REVEAL (points deducted per hint)
+                </div>
+                {(["weak","medium","direct"] as const).map((level) => (
+                  <HintBtn key={level} level={level} used={hintsUsed.has(level)} onClick={() => handleHintClick(level)} />
+                ))}
+                {hintsUsed.size > 0 && (
+                  <div style={{ marginTop: 8, padding: "6px 8px", background: "#0a0600", border: "1px solid #553300", fontSize: 9, color: "#886633", lineHeight: 1.6 }}>
+                    Hints used: {[...hintsUsed].join(", ")} | Penalty: -{hintPenalty} pts
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Input row */}
           <div style={{ borderTop: "1px solid #00e5cc22", padding: "10px 12px", background: "#060d18", display: "flex", gap: 8, alignItems: "center" }}>
             {chatStep === "idle" && (
-              <button
-                onClick={() => { addUser("Begin analysis"); setTimeout(() => startQ1(), 400); }}
-                style={{ background: "#0a2235", border: `1px solid ${teal}`, color: teal, fontFamily: mono, fontSize: 9, letterSpacing: 2, padding: "7px 14px", cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 0 10px #00e5cc22", flexShrink: 0 }}
-              >
+              <button onClick={() => { addUser("Begin analysis"); setTimeout(() => startQ1(), 400); }}
+                style={{ background: "#0a2235", border: `1px solid ${teal}`, color: teal, fontFamily: mono, fontSize: 9, letterSpacing: 2, padding: "7px 14px", cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 0 10px #00e5cc22", flexShrink: 0 }}>
                 [ BEGIN ANALYSIS ]
               </button>
             )}
@@ -684,26 +721,24 @@ export default function AutopsyTerminal() {
               onChange={(e) => setInputVal(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder={
-                chatStep === "q3"   ? "Type your inference (max 200 chars)..."
+                chatStep === "q1" || chatStep === "q2" ? "Click an option above..."
+                : chatStep === "q3"   ? "Type your inference (max 200 chars)..."
                 : chatStep === "done" ? "Analysis complete"
                 : "Type a message..."
               }
-              disabled={chatStep === "done"}
-              style={{ flex: 1, background: "#080f1e", border: "1px solid #00e5cc22", color: "#a0e8d8", fontFamily: mono, fontSize: 10, padding: "7px 10px", outline: "none", opacity: chatStep === "done" ? 0.4 : 1 }}
+              disabled={inputDisabled}
+              style={{ flex: 1, background: "#080f1e", border: "1px solid #00e5cc22", color: "#a0e8d8", fontFamily: mono, fontSize: 10, padding: "7px 10px", outline: "none", opacity: inputDisabled ? 0.4 : 1 }}
             />
-            <button
-              onClick={handleSend}
-              disabled={chatStep === "done"}
-              style={{ background: "transparent", border: `1px solid ${teal}`, color: teal, fontFamily: mono, fontSize: 9, padding: "7px 12px", cursor: "pointer", opacity: chatStep === "done" ? 0.4 : 1 }}
-            >
+            <button onClick={handleSend} disabled={inputDisabled}
+              style={{ background: "transparent", border: `1px solid ${teal}`, color: teal, fontFamily: mono, fontSize: 9, padding: "7px 12px", cursor: "pointer", opacity: inputDisabled ? 0.4 : 1 }}>
               ▶
             </button>
           </div>
 
           {/* Score strip */}
           {submitted && (
-            <div style={{ borderTop: "1px solid #00e5cc22", padding: "10px 14px", background: "#04080f", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4 }}>
-              {scoreRows.map(([label, val, max]) => (
+            <div style={{ borderTop: "1px solid #00e5cc22", padding: "10px 14px", background: "#04080f", display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 4 }}>
+              {([["Q1", scores.q1, 30],["Q2", scores.q2, 30]] as [string,number,number][]).map(([label,val,max]) => (
                 <div key={label} style={{ textAlign: "center" }}>
                   <div style={{ color: "#336677", fontSize: 8 }}>{label}</div>
                   <div style={{ color: val > 0 ? teal : "#331111", fontSize: 11, fontWeight: 700 }}>{val}</div>
@@ -723,11 +758,11 @@ export default function AutopsyTerminal() {
 
       <style>{`
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #050000; }
-        ::-webkit-scrollbar-thumb { background: #331111; }
-        * { box-sizing: border-box; }
-        button:active { transform: scale(0.98); }
+        ::-webkit-scrollbar { width:4px; }
+        ::-webkit-scrollbar-track { background:#050000; }
+        ::-webkit-scrollbar-thumb { background:#331111; }
+        * { box-sizing:border-box; }
+        button:active { transform:scale(0.98); }
       `}</style>
     </div>
   );
