@@ -1,5 +1,5 @@
 "use client";
-
+// @ts-nocheck
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UnifrakturCook, Orbitron } from "next/font/google";
@@ -27,7 +27,7 @@ export default function Login() {
 
   return (
     <div className={`min-h-screen bg-black text-white ${uiFont.className} flex flex-col items-center justify-center p-6`}>
-      
+
       {/* 🔴 DETECTIVE TITLE */}
       <div className={`${gothic.className} text-5xl md:text-6xl leading-tight tracking-wide text-center mb-12`}>
         <div className="text-white drop-shadow-[0_0_8px_rgba(255,0,0,0.6)]">

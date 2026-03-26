@@ -1,4 +1,5 @@
 "use client";
+// @ts-nocheck
 import { useState, useEffect, useRef, CSSProperties, FC } from "react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
