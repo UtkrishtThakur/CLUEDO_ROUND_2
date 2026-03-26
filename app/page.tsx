@@ -85,7 +85,7 @@ export default function Page() {
             <div>The deeper you go, the harder it gets to turn back</div>
             <div>Not everything is meant to be uncovered</div>
             <div>Some truths are better left buried</div>
-            <div>Proceed only if you’re ready</div>
+            <div>Proceed only if you're ready</div>
           </div>
 
           <div className="mt-8 flex gap-4">

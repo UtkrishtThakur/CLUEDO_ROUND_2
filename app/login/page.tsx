@@ -31,10 +31,10 @@ export default function Login() {
       {/* 🔴 DETECTIVE TITLE */}
       <div className={`${gothic.className} text-5xl md:text-6xl leading-tight tracking-wide text-center mb-12`}>
         <div className="text-white drop-shadow-[0_0_8px_rgba(255,0,0,0.6)]">
-          Detective
+          Supari
         </div>
         <div className="text-red-500 drop-shadow-[0_0_15px_rgba(255,0,0,0.9)]">
-          agency
+          Agency
         </div>
       </div>
 
