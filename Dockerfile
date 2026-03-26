@@ -6,7 +6,7 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Fix npm network issues (CRITICAL)
+# 🔥 Network hardening for npm
 RUN npm config set registry https://registry.npmjs.org/ \
     && npm config set fetch-retries 5 \
     && npm config set fetch-retry-maxtimeout 600000 \
@@ -14,7 +14,7 @@ RUN npm config set registry https://registry.npmjs.org/ \
 
 COPY package.json package-lock.json ./
 
-# Retry logic (handles flaky network)
+# retry install
 RUN npm ci || npm ci || npm ci
 
 
@@ -27,6 +27,7 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# 🔥 Fail early if build breaks
 RUN npm run build
 
 
@@ -37,11 +38,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# only copy required files
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
+
+# optional (only if exists)
+COPY --from=builder /app/next.config.* ./
 
 EXPOSE 3000
 

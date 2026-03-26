@@ -1,65 +1,179 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { UnifrakturCook, Orbitron } from "next/font/google";
+
+const gothic = UnifrakturCook({
+  subsets: ["latin"],
+  weight: ["700"],
+});
+
+const uiFont = Orbitron({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+});
+
+export default function Page() {
+  const router = useRouter();
+
+  const go = (path: string) => {
+    router.push(path);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+    <div className={`min-h-screen bg-black text-white ${uiFont.className}`}>
+
+      {/* NAVBAR */}
+      <div className="flex items-center justify-between px-10 py-6 border-b border-red-900">
+
+        {/* 🔴 DETECTIVE TITLE */}
+        <div className={`${gothic.className} text-3xl leading-6 tracking-wide`}>
+          <div className="text-white drop-shadow-[0_0_6px_rgba(255,0,0,0.6)]">
+            Detective
+          </div>
+          <div className="text-red-500 drop-shadow-[0_0_10px_rgba(255,0,0,0.9)]">
+            agency
+          </div>
+        </div>
+
+        {/* NAV LINKS */}
+        <div className="flex gap-10 text-sm tracking-widest">
+          <button onClick={() => go("/home")} className="hover:text-red-500">
+            HOME
+          </button>
+          <button onClick={() => go("/cases")} className="hover:text-red-500">
+            CASES
+          </button>
+          <button onClick={() => go("/evidence")} className="hover:text-red-500">
+            EVIDENCE
+          </button>
+          <button onClick={() => go("/about")} className="hover:text-red-500">
+            ABOUT
+          </button>
+        </div>
+
+        {/* ACCOUNT */}
+        <button
+          onClick={() => go("/account")}
+          className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition"
+        >
+          👤
+        </button>
+      </div>
+
+      {/* HERO SECTION */}
+      <div className="relative px-10 py-16">
+
+        {/* Background Image */}
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+          src="/background.png"
+          alt="bg"
+          fill
+          className="object-cover opacity-40"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+
+        <div className="relative z-10 max-w-3xl">
+          <h1 className="text-4xl tracking-widest font-bold border-b border-red-600 inline-block pb-2">
+            CASE FILE #131
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+
+          <div className="mt-6 text-sm tracking-wider space-y-2">
+            <div>
+              Priority: <span className="text-red-500">CRITICAL</span>
+            </div>
+            <div>Subject: Software Engineer</div>
+            <div>Company: NeuroSphere Technologies</div>
+          </div>
+
+          <div className="mt-6 text-sm text-gray-300 space-y-1">
+            <div>Employee missing. Suspected insider data theft.</div>
+            <div>Status: Active Investigation</div>
+          </div>
+
+          <div className="mt-8 flex gap-4">
+            <button
+              onClick={() => go("/start-investigation")}
+              className="border border-red-600 px-6 py-2 hover:bg-red-600 transition"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              START INVESTIGATION
+            </button>
+
+            <button
+              onClick={() => go("/view-evidence")}
+              className="border border-gray-600 px-6 py-2 hover:border-red-600 hover:text-red-500 transition"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              VIEW EVIDENCE
+            </button>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      {/* TASKS */}
+      <div className="px-10 pb-20">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl tracking-widest">
+            INVESTIGATION TASKS
+          </h2>
+          <div className="text-sm tracking-widest text-gray-400">
+            CASE PROGRESS <span className="text-red-500">1 / 5</span>
+          </div>
         </div>
-      </main>
+
+        <div className="space-y-4">
+          {[
+            {
+              title: "CONFIRM DATA BREACH",
+              status: "EVIDENCE UNLOCKED",
+              path: "/task1",
+            },
+            {
+              title: "CCTV RECONSTRUCTION",
+              status: "TASK IN PROGRESS",
+              path: "/task2",
+            },
+            {
+              title: "CODE AUDIT",
+              status: "UNLOCKS AFTER TASK 2",
+              path: "/task3",
+            },
+            {
+              title: "TELEMETRY RECONSTRUCTION",
+              status: "UNLOCKS AFTER TASK 3",
+              path: "/task4",
+            },
+          ].map((task, i) => (
+            <button
+              key={i}
+              onClick={() => go(task.path)}
+              className="w-full text-left p-6 rounded-xl bg-gradient-to-r from-red-900 to-black border border-red-800 hover:scale-[1.01] hover:border-red-500 transition"
+            >
+              <div className="text-lg tracking-wider">
+                {task.title}
+              </div>
+              <div className="text-sm text-gray-400 mt-1">
+                STATUS: {task.status}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* GHOST ASSISTANT */}
+      <div className="fixed bottom-6 right-6">
+        <div className="relative w-20 h-20">
+          <Image
+            src="/ghost_id.png"
+            alt="ghost"
+            fill
+            className="object-contain"
+          />
+
+          <div className="absolute -top-10 right-0 bg-white text-black text-xs px-3 py-1 rounded-full">
+            How may I assist you?
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

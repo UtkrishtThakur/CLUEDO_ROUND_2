@@ -1,13 +1,24 @@
-version: '3.8'
+version: "3.8"
 
 services:
   web:
     build:
       context: .
       dockerfile: Dockerfile
-      network: host # 🔥 IMPORTANT (fixes many ETIMEDOUT issues)
+      # ⚠️ only keep this if you're on broken LAN
+      # remove in real production
+      network: host
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
     restart: always
+
+    # 🔥 healthcheck (production grade)
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:3000" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
