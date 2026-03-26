@@ -123,22 +123,22 @@ export default function Page() {
         <div className="space-y-4">
           {[
             {
-              title: "CONFIRM DATA BREACH",
-              status: "EVIDENCE UNLOCKED",
+              title: "TASK 1 : Neural Autopsy Report",
+              status: "PENDING",
               path: "/task1",
             },
             {
-              title: "CCTV RECONSTRUCTION",
-              status: "TASK IN PROGRESS",
+              title: " TASK 2 : Chain of Custody",
+              status: "UNLOCK AFTER TASK 1",
               path: "/task2",
             },
             {
-              title: "CODE AUDIT",
+              title: "TASK 3 : Safety Override Auction",
               status: "UNLOCKS AFTER TASK 2",
               path: "/task3",
             },
             {
-              title: "TELEMETRY RECONSTRUCTION",
+              title: "TASK 4 : Evidence Chain Builder",
               status: "UNLOCKS AFTER TASK 3",
               path: "/task4",
             },
