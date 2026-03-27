@@ -127,7 +127,7 @@ export default function Page() {
 
         {/* ACCOUNT */}
         <button
-          onClick={() => go("/account")}
+          onClick={() => go("/login")}
           className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition"
         >
           👤
@@ -162,7 +162,7 @@ export default function Page() {
 
           <div className="mt-8 flex gap-4">
             <button
-              onClick={() => go("/start-investigation")}
+              onClick={() => window.open("https://drive.google.com/drive/folders/1EWbL3lLw85ust0Pt3qLG8d1kIDrPZ-xO", "_blank")}
               className="border border-red-600 px-6 py-2 hover:bg-red-600 transition"
             >
               START INVESTIGATION
@@ -291,7 +291,7 @@ export default function Page() {
                   <div className="w-2.5 h-2.5 rounded-full bg-cyan-900/30 animate-[pulse_1.5s_ease-in-out_0.4s_infinite]"></div>
                 </div>
               )}
-              
+
               <div ref={messagesEndRef} />
             </div>
 
