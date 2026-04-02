@@ -1,3 +1,4 @@
+'use client'
 import React, { useState } from 'react';
 
 // ==================== FILE DATA ====================
@@ -835,6 +836,24 @@ const PrepRoom = () => {
         setShowLockDialog(false);
     };
 
+    const handleSubmit = async () => {
+        try {
+            const res = await fetch("/api/tasks/submit", {
+                method: "POST", headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+                body: JSON.stringify({ taskId: "task6", action: "finalSubmission", payload: { suspects: selectedSuspects } })
+            });
+            const data = await res.json();
+            if (res.ok && data.isCorrect) {
+                alert("EVIDENCE SUBMITTED SUCCESSFULLY. FINAL ANALYSIS COMMENCING.");
+                window.location.href = "/";
+            } else {
+                alert("Submission failed or incomplete suspects.");
+            }
+        } catch {
+            alert("Connection error");
+        }
+    };
+
     const suspectCount = selectedSuspects.filter(s => s !== null).length;
 
     // Submit Page View
@@ -852,7 +871,7 @@ const PrepRoom = () => {
                         </p>
                         <button
                             style={styles.submitButton}
-                            onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSebzfyXR9SVEXHpeZUGlQETAu-g0BmS84UFfpiuLKKvjkXXaQ/viewform?usp=header', '_blank')}
+                            onClick={handleSubmit}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.background = '#ff1111';
                                 e.currentTarget.style.boxShadow = '0 0 30px #ff111188';
@@ -862,7 +881,7 @@ const PrepRoom = () => {
                                 e.currentTarget.style.boxShadow = '0 0 20px #cc000066';
                             }}
                         >
-                            OPEN EVIDENCE FORM
+                            SUBMIT EVIDENCE
                         </button>
                     </div>
                 </div>

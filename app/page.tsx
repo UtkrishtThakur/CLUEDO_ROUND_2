@@ -31,11 +31,26 @@ export default function Page() {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [interactionCount, setInteractionCount] = useState(0);
+  const [userIndex, setUserIndex] = useState(-1);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    fetch("/api/user/status", {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.currentTaskIndex !== undefined) {
+          setUserIndex(data.currentTaskIndex);
+        }
+      });
+  }, []);
 
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
@@ -127,7 +142,7 @@ export default function Page() {
 
         {/* ACCOUNT */}
         <button
-          onClick={() => go("/login")}
+          onClick={() => router.push("/login")}
           className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition"
         >
           👤
@@ -178,7 +193,7 @@ export default function Page() {
             INVESTIGATION TASKS
           </h2>
           <div className="text-sm tracking-widest text-gray-400">
-            CASE PROGRESS <span className="text-red-500">1 / 5</span>
+            CASE PROGRESS <span className="text-red-500">{Math.max(1, userIndex + 1)} / 5</span>
           </div>
         </div>
 
@@ -186,53 +201,63 @@ export default function Page() {
           {[
             {
               title: "TASK 1 : Neural Autopsy Report",
-              status: "PENDING",
-              path: "/task1",
+              path: "/tasks/task1",
             },
             {
-              title: " TASK 2 : Chain of Custody",
-              status: "UNLOCK AFTER TASK 1",
-              path: "/task2",
+              title: "TASK 2 : Chain of Custody",
+              path: "/tasks/task3",
             },
             {
               title: "TASK 3 : Safety Override Auction",
-              status: "UNLOCKS AFTER TASK 2",
-              path: "/task3",
+              path: "/tasks/task5",
             },
             {
               title: "TASK 4 : Evidence Chain Builder",
-              status: "UNLOCKS AFTER TASK 3",
-              path: "/task4",
+              path: "/tasks/task6",
             },
-          ].map((task, i) => (
-            <button
-              key={i}
-              onClick={() => go(task.path)}
-              className="w-full text-left p-6 rounded-xl bg-gradient-to-r from-red-900 to-black border border-red-800 hover:scale-[1.01] hover:border-red-500 transition"
-            >
-              <div className="text-lg tracking-wider">
-                {task.title}
-              </div>
-              <div className="text-sm text-gray-400 mt-1">
-                STATUS: {task.status}
-              </div>
-            </button>
-          ))}
+          ].map((task, i) => {
+            let status = "LOCKED";
+            if (userIndex > i) status = "COMPLETED";
+            else if (userIndex === i) status = "PENDING / ACTIVE";
+
+            const locked = userIndex < i && userIndex !== -1;
+
+            return (
+              <button
+                key={i}
+                onClick={() => {
+                  if (!locked) router.push(task.path);
+                }}
+                disabled={locked}
+                className={`w-full text-left p-6 rounded-xl border transition ${locked
+                  ? "bg-black border-red-900/40 opacity-60 cursor-not-allowed"
+                  : "bg-gradient-to-r from-red-900 to-black border-red-800 hover:scale-[1.01] hover:border-red-500"
+                  }`}
+              >
+                <div className="text-lg tracking-wider">
+                  {task.title}
+                </div>
+                <div className="text-sm text-gray-400 mt-1">
+                  STATUS: {status}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* GHOST ASSISTANT */}
       <button onClick={() => setIsGhostOpen(true)}>
-      <div className="fixed bottom-6 right-6 hover:scale-110 transition-transform cursor-pointer">
-        <div className="relative w-20 h-20 drop-shadow-[0_0_15px_rgba(0,229,255,0.5)]">
-          <Image
-            src="/ghost_id.png"
-            alt="ghost"
-            fill
-            className="object-contain"
-          />
+        <div className="fixed bottom-6 right-6 hover:scale-110 transition-transform cursor-pointer">
+          <div className="relative w-20 h-20 drop-shadow-[0_0_15px_rgba(0,229,255,0.5)]">
+            <Image
+              src="/ghost_id.png"
+              alt="ghost"
+              fill
+              className="object-contain"
+            />
+          </div>
         </div>
-      </div>
       </button>
 
       {/* GHOST ASSISTANT MODAL */}

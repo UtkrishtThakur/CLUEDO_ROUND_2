@@ -184,11 +184,11 @@ const SYM_CATS: Record<string, string[]> = {
     FIRMWARE: ["FW_CORE", "CFG_BOOT", "IMG_FLASH", "PATCH_FW"],
     SECURITY: ["SIG_HASH", "KEY_CERT", "AUTH_TOKEN", "AUDIT_LOG"],
 };
-const CODE_CORRECT = [
+const CODE_PIECES = [
+    'session.execute_transfer(payload="neuro_dump_v2", dest="ghost_node_x")',
     'import transfer_module as tm',
-    'session = tm.Session(host="ext_host")',
-    'session.authenticate(user="a.m_arch")',
-    'session.upload("nb_v4_backup.zip")',
+    'session.auth(token="0x99F_AUT")',
+    'session = tm.Session(host="ext_host", port=9091)',
     'session.commit(sign=False)',
     'session.close()',
 ];
@@ -970,13 +970,25 @@ function PuzzleSimon({ solved, onSolve, onToast, active }: { solved: boolean; on
 }
 
 function PuzzleCodeAlign({ solved, onSolve, onToast }: { solved: boolean; onSolve: () => void; onToast: (m: string, t: ToastType) => void }) {
-    const [order, setOrder] = useState<string[]>(() => shuffle(CODE_CORRECT));
+    const [order, setOrder] = useState<string[]>(() => shuffle([...CODE_PIECES]));
     const [drag, setDrag] = useState<number | null>(null);
     const drop = (t: number): void => { if (drag === null || drag === t) return; setOrder(o => { const n = [...o];[n[drag], n[t]] = [n[t], n[drag]]; return n; }); setDrag(null); };
-    const check = (): void => { if (order.every((v, i) => v === CODE_CORRECT[i])) setTimeout(onSolve, 400); else onToast("CODE ORDER INCORRECT — REARRANGE", "error"); };
+    const check = async (): Promise<void> => {
+        try {
+            const res = await fetch("/api/tasks/submit", {
+                method: "POST", headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+                body: JSON.stringify({ taskId: "task3", action: "puzzleCrack", payload: { type: "codeAssembly", order } })
+            });
+            const data = await res.json();
+            if (data.isCorrect) setTimeout(onSolve, 400);
+            else onToast("CODE ORDER INCORRECT — REARRANGE", "error");
+        } catch {
+            onToast("VALIDATION ERROR", "error");
+        }
+    };
     return (<div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10 }}>
-            {order.map((line, i) => (<div key={line} draggable={!solved} onDragStart={() => setDrag(i)} onDragOver={e => e.preventDefault()} onDrop={() => drop(i)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: solved && order[i] === CODE_CORRECT[i] ? "#1a0505" : "var(--bg)", border: `1px solid ${solved && order[i] === CODE_CORRECT[i] ? "var(--green)" : drag === i ? "var(--yellow)" : "var(--border)"}`, borderRadius: 3, fontSize: "0.58rem", letterSpacing: 1, cursor: solved ? "default" : "grab", userSelect: "none", opacity: drag === i ? 0.5 : 1, color: solved && order[i] === CODE_CORRECT[i] ? "var(--green)" : "var(--text)" }}>
+            {order.map((line, i) => (<div key={line} draggable={!solved} onDragStart={() => setDrag(i)} onDragOver={e => e.preventDefault()} onDrop={() => drop(i)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: solved ? "#1a0505" : "var(--bg)", border: `1px solid ${solved ? "var(--green)" : drag === i ? "var(--yellow)" : "var(--border)"}`, borderRadius: 3, fontSize: "0.58rem", letterSpacing: 1, cursor: solved ? "default" : "grab", userSelect: "none", opacity: drag === i ? 0.5 : 1, color: solved ? "var(--green)" : "var(--text)" }}>
                 <span style={{ color: "var(--text-dim)", fontSize: "0.52rem", width: 14, textAlign: "right" }}>{i + 1}</span>{line}
             </div>))}
         </div>
@@ -1308,12 +1320,12 @@ const GHOST_QUESTIONS = [
     },
     {
         id: 2,
-        query: "What setting enables bypassing automatic safety limits?",
+        query: "What specific parameter was adjusted to allow the system to withstand the overload without initiating a hard shutdown?",
         hints: { weak: GHOST_HINT_WEAK, medium: GHOST_HINT_MEDIUM, strong: GHOST_HINT_STRONG },
         mission: "The transfer path is becoming clear. Now dig deeper into the system configuration.",
         followup: "Review safety_limits.cfg carefully. There is one key that should not have been enabled.",
-        answers: ["manual_override", "manual override", "override"],
-        correct_reply: "Correct. manual_override was enabled — disabling automatic safety limits and allowing unrestricted stimulation parameters. This is the second breach vector.",
+        answers: [],
+        correct_reply: "AFFIRMATIVE.\nThe 'spike tolerance' window was extended from 2.5s to 12.0s via the custom patch. This caused the system to delay its emergency response until it was too late.\nThis was not an accident.",
         wrong_reply: "Not quite. Check safety_limits.cfg — look specifically at the override field. What value was set that bypassed the safety layer?",
     },
     {
@@ -1364,23 +1376,33 @@ function Ghost41Chat({ solved, unlocked, onHintUsed, onCorrect }: { solved: bool
         }, 0);
     }, [qIdx]);
 
-    const send = (): void => {
+    const send = async (): Promise<void> => {
         const val = input.trim(); if (!val) return;
-        const inp = val.toLowerCase();
-        const ok = q.answers.some(a => inp.includes(a.toLowerCase()));
-        setMsgs(m => [...m, { role: "user", text: val }, { role: "ghost", text: ok ? q.correct_reply : q.wrong_reply }]);
-        setInput("");
-        setLastCorrect(ok);
-        if (!ok) {
-            const newCount = wrongCount + 1;
-            setWrongCount(newCount);
-        }
-        const Q_POINTS = [30, 30, 0];
-        if (ok) {
-            setWrongCount(0); setHintPanel("closed"); setShownHints({});
-            if (onCorrect && Q_POINTS[qIdx] > 0) onCorrect(Q_POINTS[qIdx]);
-            if (qIdx < GHOST_QUESTIONS.length - 1) setTimeout(() => setQIdx(i => i + 1), 1800);
-            else setTimeout(() => setDone(true), 1800);
+
+        try {
+            const res = await fetch("/api/tasks/submit", {
+                method: "POST", headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+                body: JSON.stringify({ taskId: "task3", action: "ghostQuery", payload: { qIdx, answer: val } })
+            });
+            const data = await res.json();
+            const ok = data.isCorrect;
+
+            setMsgs(m => [...m, { role: "user", text: val }, { role: "ghost", text: ok ? q.correct_reply : q.wrong_reply }]);
+            setInput("");
+            setLastCorrect(ok);
+            if (!ok) {
+                const newCount = wrongCount + 1;
+                setWrongCount(newCount);
+            }
+            const Q_POINTS = [30, 30, 0];
+            if (ok) {
+                setWrongCount(0); setHintPanel("closed"); setShownHints({});
+                if (onCorrect && Q_POINTS[qIdx] > 0) onCorrect(Q_POINTS[qIdx]);
+                if (qIdx < GHOST_QUESTIONS.length - 1) setTimeout(() => setQIdx(i => i + 1), 1800);
+                else setTimeout(() => setDone(true), 1800);
+            }
+        } catch {
+            setMsgs(m => [...m, { role: "user", text: val }, { role: "ghost", text: "CONNECTION ERROR" }]);
         }
     };
 

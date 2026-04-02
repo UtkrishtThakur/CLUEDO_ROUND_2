@@ -1,21 +1,21 @@
+'use client'
 import { useState, useEffect, useRef, CSSProperties, FC } from "react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type LineType    = "normal" | "accent" | "danger" | "dim";
-type ChatStep    = "idle" | "q1" | "q2" | "q3" | "done";
+type LineType = "normal" | "accent" | "danger" | "dim";
+type ChatStep = "idle" | "q1" | "q2" | "q3" | "done";
 type EvidenceKey = "autopsy" | "neural" | "temperature" | "timeline";
 
-interface EvidenceLine   { t: LineType; s: string; }
-interface EvidenceFile   { title: string; lines: EvidenceLine[]; }
-interface Message        { from: "ghost" | "user"; text: string; }
-interface Scores         { q1: number; q2: number; q3: number; }
+interface EvidenceLine { t: LineType; s: string; }
+interface EvidenceFile { title: string; lines: EvidenceLine[]; }
+interface Message { from: "ghost" | "user"; text: string; }
+interface Scores { q1: number; q2: number; q3: number; }
 interface GhostIconProps { size?: number; }
-interface ModalProps     { file: EvidenceKey | null; onClose: () => void; }
-interface MsgProps       { msg: Message; }
+interface ModalProps { file: EvidenceKey | null; onClose: () => void; }
+interface MsgProps { msg: Message; }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const Q1_CORRECT = "Neural overload";
-const Q2_CORRECT = "Safety dampening / shutdown system";
+
 
 const Q1_OPTIONS = [
   "Brain hemorrhage",
@@ -59,7 +59,7 @@ const EVIDENCE: Record<EvidenceKey, EvidenceFile> = {
       { t: "normal", s: "SUBJECT: Rishab Sen | AGE: 31 | SEX: Male" },
       { t: "normal", s: "DATE: 12 Oct 20XX | LOCATION: Sector 4" },
       { t: "normal", s: "LEAD EXAMINER: Dr. A. Rao" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "EXTERNAL EXAMINATION:" },
       { t: "normal", s: "" },
       { t: "accent", s: "  › No blunt force trauma, lacerations" },
@@ -69,7 +69,7 @@ const EVIDENCE: Record<EvidenceKey, EvidenceFile> = {
       { t: "accent", s: "    on torso or extremities." },
       { t: "accent", s: "  › No puncture marks detected." },
       { t: "normal", s: "" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "INTERNAL EXAMINATION:" },
       { t: "normal", s: "" },
       { t: "danger", s: "  › DIFFUSE CEREBRAL EDEMA detected." },
@@ -81,17 +81,17 @@ const EVIDENCE: Record<EvidenceKey, EvidenceFile> = {
       { t: "accent", s: "    tissue — catecholamine surge." },
       { t: "normal", s: "  › Systemic shutdown: extreme velocity." },
       { t: "normal", s: "" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "TOXICOLOGY:" },
       { t: "normal", s: "" },
       { t: "accent", s: "  › Narcotics/Stimulants/Toxins: NEGATIVE" },
       { t: "accent", s: "  › Poisoning: STRICTLY RULED OUT" },
       { t: "normal", s: "" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "danger", s: "CAUSE OF DEATH:" },
       { t: "danger", s: "  Acute Myocardial Asystole secondary" },
       { t: "danger", s: "  to Idiopathic Cortical Overload." },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "Signed: Dr. A. Rao, Chief Medical Examiner" },
     ],
   },
@@ -100,9 +100,9 @@ const EVIDENCE: Record<EvidenceKey, EvidenceFile> = {
     lines: [
       { t: "normal", s: "SYSTEM: NEURAL_INTERFACE_B3" },
       { t: "normal", s: "SESSION ID: 8842-X | USER: SEN_R_931" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "TIMESTAMP     EVENT" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "21:00:11  [SYS]  Handshake 100% stable. AES-256." },
       { t: "normal", s: "21:00:25  [LINK] Neural monitoring active. Lock: SEN_R." },
       { t: "normal", s: "21:00:40  [SENS] Ocular tracking: OK. Vestibular: OK." },
@@ -120,9 +120,9 @@ const EVIDENCE: Record<EvidenceKey, EvidenceFile> = {
       { t: "danger", s: "21:15:08  [SYS]  Manual dampeners FAILED. Override FAILED." },
       { t: "danger", s: "21:15:10  [HALT] !! TOTAL NEURAL OVERLOAD !! Dump initiated." },
       { t: "danger", s: "21:15:12  [TLM]  Signal degradation detected." },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "21:15:15  [EOF]  Monitoring terminated. → SECURE_ROOT." },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
     ],
   },
   temperature: {
@@ -130,24 +130,24 @@ const EVIDENCE: Record<EvidenceKey, EvidenceFile> = {
     lines: [
       { t: "normal", s: "CASE REFERENCE: NB-IR-2147" },
       { t: "normal", s: "SUBJECT: Rishab Sen" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "PARAMETER            READING" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "accent", s: "Body Temperature:    32.4°C" },
       { t: "accent", s: "Room Temperature:    22°C" },
       { t: "accent", s: "Measurement Time:    21:25" },
       { t: "normal", s: "Method: Deep tissue digital probe" },
       { t: "normal", s: "" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "NOTE: Estimated time of death may be" },
       { t: "normal", s: "inferred using thermal decay analysis." },
       { t: "normal", s: "" },
       { t: "accent", s: "HINT: Normal body temp = 37.0°C" },
       { t: "accent", s: "      Delta = 37.0 - 32.4 = 4.6°C" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "Sensor calibrated: ✓ VERIFIED" },
       { t: "normal", s: "Chain of custody:  ✓ INTACT" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
     ],
   },
   timeline: {
@@ -155,9 +155,9 @@ const EVIDENCE: Record<EvidenceKey, EvidenceFile> = {
     lines: [
       { t: "normal", s: "INCIDENT REF: #992-ALPHA | SITE 4" },
       { t: "normal", s: "DATE: 12 Oct 20XX" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "TIME    EVENT" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "21:00   Session Start: User SEN_R_931" },
       { t: "normal", s: "" },
       { t: "normal", s: "21:01   Interface Sync: 100% Signal Quality" },
@@ -171,29 +171,22 @@ const EVIDENCE: Record<EvidenceKey, EvidenceFile> = {
       { t: "accent", s: "21:06   System Shutdown: Automated Safety Protocol" },
       { t: "normal", s: "" },
       { t: "normal", s: "21:08   Site Arrival: First Response Team" },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
       { t: "normal", s: "REPORT STATUS: OFFICIAL / SEALED" },
       { t: "normal", s: "" },
       { t: "danger", s: "NOTE: Neural log shows overload at 21:15:10" },
       { t: "danger", s: "vs official collapse report at 21:04." },
       { t: "danger", s: "Cross-reference with thermal data." },
-      { t: "dim",    s: "─────────────────────────────────────" },
+      { t: "dim", s: "─────────────────────────────────────" },
     ],
   },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function scoreQ3(text: string): number {
-  const lower = text.toLowerCase();
-  const kw = ["neural","overload","earlier","temperature","cooling","contradict","report","cortical","dampening","safety"];
-  const hits = kw.filter((k) => lower.includes(k)).length;
-  return hits >= 4 ? 40 : hits >= 2 ? 25 : hits >= 1 ? 10 : 0;
-}
-
 const lineColor = (t: LineType): string => {
   if (t === "accent") return "#ffaa44";
   if (t === "danger") return "#ff3333";
-  if (t === "dim")    return "#551111";
+  if (t === "dim") return "#551111";
   return "#cc9999";
 };
 
@@ -342,42 +335,42 @@ const HintBtn: FC<{ level: "weak" | "medium" | "direct"; used: boolean; onClick:
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function AutopsyTerminal() {
-  const mono   = "'Courier New', monospace";
-  const red    = "#ff3333";
+  const mono = "'Courier New', monospace";
+  const red = "#ff3333";
   const dimRed = "#551111";
-  const teal   = "#00e5cc";
+  const teal = "#00e5cc";
 
   // Evidence
-  const [openFile,    setOpenFile]    = useState<EvidenceKey | null>(null);
+  const [openFile, setOpenFile] = useState<EvidenceKey | null>(null);
   const [openedFiles, setOpenedFiles] = useState<EvidenceKey[]>([]);
 
   // Forensic module
-  const [bodyTemp,  setBodyTemp]  = useState<string>("");
-  const [roomTemp,  setRoomTemp]  = useState<string>("");
-  const [todShown,  setTodShown]  = useState<boolean>(false);
-  const [todError,  setTodError]  = useState<string>("");
+  const [bodyTemp, setBodyTemp] = useState<string>("");
+  const [roomTemp, setRoomTemp] = useState<string>("");
+  const [todShown, setTodShown] = useState<boolean>(false);
+  const [todError, setTodError] = useState<string>("");
 
   // Chat
-  const [messages,   setMessages]   = useState<Message[]>([]);
-  const [inputVal,   setInputVal]   = useState<string>("");
-  const [chatStep,   setChatStep]   = useState<ChatStep>("idle");
-  const [typing,     setTyping]     = useState<boolean>(false);
-  const [scores,     setScores]     = useState<Scores>({ q1: 0, q2: 0, q3: 0 });
-  const [submitted,  setSubmitted]  = useState<boolean>(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputVal, setInputVal] = useState<string>("");
+  const [chatStep, setChatStep] = useState<ChatStep>("idle");
+  const [typing, setTyping] = useState<boolean>(false);
+  const [scores, setScores] = useState<Scores>({ q1: 0, q2: 0, q3: 0 });
+  const [submitted, setSubmitted] = useState<boolean>(false);
 
   // Q answers
   const [pendingQ1, setPendingQ1] = useState<string>("");
 
   // Hints — all usable, cumulative penalty
-  const [hintsUsed,    setHintsUsed]   = useState<Set<"weak" | "medium" | "direct">>(new Set());
-  const [hintPenalty,  setHintPenalty] = useState<number>(0);
+  const [hintsUsed, setHintsUsed] = useState<Set<"weak" | "medium" | "direct">>(new Set());
+  const [hintPenalty, setHintPenalty] = useState<number>(0);
 
   // Q1/Q2 locked after selection
   const [q1Locked, setQ1Locked] = useState<boolean>(false);
   const [q2Locked, setQ2Locked] = useState<boolean>(false);
 
   const chatRef = useRef<HTMLDivElement>(null);
-  const scroll  = () => setTimeout(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, 60);
+  const scroll = () => setTimeout(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, 60);
 
   const addBot = (text: string, delay = 0) => {
     setTyping(true);
@@ -429,28 +422,35 @@ export default function AutopsyTerminal() {
   };
 
   // ── Validation ────────────────────────────────────────────────────────────
-  const validateBoth = (q1: string, q2: string) => {
-    const q1ok = q1 === Q1_CORRECT;
-    const q2ok = q2 === Q2_CORRECT;
-    if (q1ok && q2ok) {
-      const q2score = 30 - hintPenalty;
-      setScores((p) => ({ ...p, q1: 30, q2: q2score }));
-      addBot("Both answers confirmed. Consistent with the neural activity log. Well deduced.", 600);
-      setTimeout(() => {
-        setChatStep("q3");
-        addBot("Q3 — ONE-LINE INFERENCE\nIn max 200 characters, summarise what the evidence reveals. Type your inference below.", 1200);
-      }, 1800);
-    } else {
-      addBot("One or more answers is incorrect. Review the evidence and try again.", 700);
-      setTimeout(() => {
-        setPendingQ1("");
-        setQ1Locked(false);
-        setQ2Locked(false);
-        setHintsUsed(new Set());
-        setHintPenalty(0);
-        setChatStep("q1");
-        addBot("Q1 — PRIMARY FAILURE IDENTIFICATION\nWhat was the primary cause of death?\n\nClick your answer below.", 1200);
-      }, 2000);
+  const validateBoth = async (q1: string, q2: string) => {
+    try {
+      const res = await fetch("/api/tasks/submit", {
+        method: "POST", headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify({ taskId: "task1", action: "validateQ1Q2", payload: { q1, q2 } })
+      });
+      const data = await res.json();
+      if (data.isCorrect) {
+        const q2score = 30 - hintPenalty;
+        setScores((p) => ({ ...p, q1: 30, q2: q2score }));
+        addBot("Both answers confirmed. Consistent with the neural activity log. Well deduced.", 600);
+        setTimeout(() => {
+          setChatStep("q3");
+          addBot("Q3 — ONE-LINE INFERENCE\nIn max 200 characters, summarise what the evidence reveals. Type your inference below.", 1200);
+        }, 1800);
+      } else {
+        addBot("One or more answers is incorrect. Review the evidence and try again.", 700);
+        setTimeout(() => {
+          setPendingQ1("");
+          setQ1Locked(false);
+          setQ2Locked(false);
+          setHintsUsed(new Set());
+          setHintPenalty(0);
+          setChatStep("q1");
+          addBot("Q1 — PRIMARY FAILURE IDENTIFICATION\nWhat was the primary cause of death?\n\nClick your answer below.", 1200);
+        }, 2000);
+      }
+    } catch {
+      addBot("System Error connecting to core.", 600);
     }
   };
 
@@ -458,9 +458,9 @@ export default function AutopsyTerminal() {
   const handleCalc = () => {
     setTodError("");
     const bt = parseFloat(bodyTemp), rt = parseFloat(roomTemp);
-    if (!bodyTemp || !roomTemp)   { setTodError("BOTH TEMPERATURE FIELDS REQUIRED"); return; }
-    if (isNaN(bt) || isNaN(rt))   { setTodError("INVALID TEMPERATURE VALUES"); return; }
-    if (bt >= 37 || bt <= rt)     { setTodError("IMPLAUSIBLE TEMPERATURE VALUES"); return; }
+    if (!bodyTemp || !roomTemp) { setTodError("BOTH TEMPERATURE FIELDS REQUIRED"); return; }
+    if (isNaN(bt) || isNaN(rt)) { setTodError("INVALID TEMPERATURE VALUES"); return; }
+    if (bt >= 37 || bt <= rt) { setTodError("IMPLAUSIBLE TEMPERATURE VALUES"); return; }
     setTodShown(true);
   };
 
@@ -491,28 +491,30 @@ export default function AutopsyTerminal() {
         addBot(`Your inference is ${text.length} characters. Please keep it under 200.`, 400);
         return;
       }
-      const q3score  = scoreQ3(text);
-      const newQ2    = 30 - hintPenalty;
-      const newScores: Scores = { q1: scores.q1, q2: newQ2, q3: q3score };
-      const total    = newScores.q1 + newScores.q2 + q3score;
-      setScores(newScores);
-      setChatStep("done");
-      setSubmitted(true);
       addBot("Inference logged. Running final analysis...", 500);
-      setTimeout(() => {
-        addBot(
-          `ANALYSIS COMPLETE.\n\nQ1: ${newScores.q1}/30\nQ2: ${newQ2}/30\n──────────────────\nTOTAL: ${newScores.q1 + newQ2}/60`,
-          1600,
-        );
-      }, 2200);
-      setTimeout(() => {
-        addBot(
-          total >= 85
-            ? "Exceptional deduction. The physical evidence exposes a critical gap in the official narrative. This investigation is not over."
-            : "",
-          3200,
-        );
-      }, 3800);
+      (async () => {
+        try {
+          const res = await fetch("/api/tasks/submit", {
+            method: "POST", headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+            body: JSON.stringify({ taskId: "task1", action: "validateQ3", payload: { text } })
+          });
+          const data = await res.json();
+          const q3score = data.score || 0;
+          const newQ2 = 30 - hintPenalty;
+          const newScores = { q1: scores.q1, q2: newQ2, q3: q3score };
+          const total = newScores.q1 + newScores.q2 + q3score;
+          setScores(newScores);
+          setChatStep("done");
+          setSubmitted(true);
+
+          setTimeout(() => {
+            addBot(`ANALYSIS COMPLETE.\n\nQ1: ${newScores.q1}/30\nQ2: ${newQ2}/30\nQ3: ${q3score}/40\n──────────────────\nTOTAL: ${total}/100`, 1600);
+          }, 2200);
+          setTimeout(() => {
+            addBot(total >= 85 ? "Exceptional deduction. The physical evidence exposes a critical gap in the official narrative. This investigation is not over." : "Analysis completed, report generated.", 3200);
+          }, 3800);
+        } catch { addBot("Error validating.", 600); }
+      })();
       return;
     }
 
@@ -533,10 +535,10 @@ export default function AutopsyTerminal() {
   const totalScore = scores.q1 + scores.q2 + scores.q3;
 
   const evidenceBtns: [EvidenceKey, string][] = [
-    ["autopsy",     "Autopsy Report"],
-    ["neural",      "Neural Activity Log"],
+    ["autopsy", "Autopsy Report"],
+    ["neural", "Neural Activity Log"],
     ["temperature", "Temperature Record"],
-    ["timeline",    "Incident Timeline"],
+    ["timeline", "Incident Timeline"],
   ];
 
   const inputDisabled = chatStep === "done" || chatStep === "q1" || chatStep === "q2";
@@ -563,7 +565,7 @@ export default function AutopsyTerminal() {
           </div>
         </div>
         <div style={{ marginTop: 10, display: "flex", gap: 20, flexWrap: "wrap" }}>
-          {([["CASE","NeuroBand Incident"],["SUBJECT","Rishab Sen"],["STATUS","Post-Incident Analysis"]] as [string,string][]).map(([k,v]) => (
+          {([["CASE", "NeuroBand Incident"], ["SUBJECT", "Rishab Sen"], ["STATUS", "Post-Incident Analysis"]] as [string, string][]).map(([k, v]) => (
             <div key={k}><span style={{ color: dimRed, fontSize: 10 }}>{k}: </span><span style={{ color: "#cc6666", fontSize: 10 }}>{v}</span></div>
           ))}
         </div>
@@ -614,7 +616,7 @@ export default function AutopsyTerminal() {
                 <input value={val} onChange={(e) => set(e.target.value)} placeholder="°C"
                   style={{ background: "#0c0000", border: `1px solid ${dimRed}`, color: "#ff9999", fontFamily: mono, fontSize: 12, padding: "8px 12px", width: "100%", outline: "none" }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = red)}
-                  onBlur={(e)  => (e.currentTarget.style.borderColor = dimRed)}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = dimRed)}
                 />
               </div>
             ))}
@@ -674,7 +676,7 @@ export default function AutopsyTerminal() {
             <div style={{ padding: "10px 14px", borderTop: "2px solid #00e5cc33", background: "#030b14" }}>
               <div style={{ color: "#00e5cc99", fontSize: 9, letterSpacing: 3, marginBottom: 10 }}>▶ SELECT CAUSE OF DEATH</div>
               {Q1_OPTIONS.map((opt, i) => (
-                <OptBtn key={opt} label={`${String.fromCharCode(65+i)}. ${opt}`} onClick={() => handleQ1Click(opt)} disabled={q1Locked} />
+                <OptBtn key={opt} label={`${String.fromCharCode(65 + i)}. ${opt}`} onClick={() => handleQ1Click(opt)} disabled={q1Locked} />
               ))}
             </div>
           )}
@@ -686,7 +688,7 @@ export default function AutopsyTerminal() {
               <div style={{ padding: "10px 14px", borderTop: "2px solid #00e5cc33", background: "#030b14" }}>
                 <div style={{ color: "#00e5cc99", fontSize: 9, letterSpacing: 3, marginBottom: 10 }}>▶ SELECT FAILED SYSTEM FUNCTION</div>
                 {Q2_OPTIONS.map((opt, i) => (
-                  <OptBtn key={opt} label={`${String.fromCharCode(65+i)}. ${opt}`} onClick={() => handleQ2Click(opt)} disabled={q2Locked} />
+                  <OptBtn key={opt} label={`${String.fromCharCode(65 + i)}. ${opt}`} onClick={() => handleQ2Click(opt)} disabled={q2Locked} />
                 ))}
               </div>
 
@@ -695,7 +697,7 @@ export default function AutopsyTerminal() {
                 <div style={{ color: "#ffaa44", fontSize: 9, letterSpacing: 3, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 11 }}>⚠</span> HINTS — CLICK TO REVEAL (points deducted per hint)
                 </div>
-                {(["weak","medium","direct"] as const).map((level) => (
+                {(["weak", "medium", "direct"] as const).map((level) => (
                   <HintBtn key={level} level={level} used={hintsUsed.has(level)} onClick={() => handleHintClick(level)} />
                 ))}
                 {hintsUsed.size > 0 && (
@@ -721,9 +723,9 @@ export default function AutopsyTerminal() {
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder={
                 chatStep === "q1" || chatStep === "q2" ? "Click an option above..."
-                : chatStep === "q3"   ? "Type your inference (max 200 chars)..."
-                : chatStep === "done" ? "Analysis complete"
-                : "Type a message..."
+                  : chatStep === "q3" ? "Type your inference (max 200 chars)..."
+                    : chatStep === "done" ? "Analysis complete"
+                      : "Type a message..."
               }
               disabled={inputDisabled}
               style={{ flex: 1, background: "#080f1e", border: "1px solid #00e5cc22", color: "#a0e8d8", fontFamily: mono, fontSize: 10, padding: "7px 10px", outline: "none", opacity: inputDisabled ? 0.4 : 1 }}
@@ -737,7 +739,7 @@ export default function AutopsyTerminal() {
           {/* Score strip */}
           {submitted && (
             <div style={{ borderTop: "1px solid #00e5cc22", padding: "10px 14px", background: "#04080f", display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 4 }}>
-              {([["Q1", scores.q1, 30],["Q2", scores.q2, 30]] as [string,number,number][]).map(([label,val,max]) => (
+              {([["Q1", scores.q1, 30], ["Q2", scores.q2, 30]] as [string, number, number][]).map(([label, val, max]) => (
                 <div key={label} style={{ textAlign: "center" }}>
                   <div style={{ color: val >= 0 ? teal : "#ff3333", fontSize: 11, fontWeight: 700 }}>{label}: {val}/{max}</div>
                 </div>
