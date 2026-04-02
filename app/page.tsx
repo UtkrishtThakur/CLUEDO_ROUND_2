@@ -204,15 +204,15 @@ export default function Page() {
               path: "/tasks/task1",
             },
             {
-              title: "TASK 2 : Chain of Custody",
+              title: "TASK 3 : Chain of Custody",
               path: "/tasks/task3",
             },
             {
-              title: "TASK 3 : Safety Override Auction",
+              title: "TASK 5 : Safety Override Auction",
               path: "/tasks/task5",
             },
             {
-              title: "TASK 4 : Evidence Chain Builder",
+              title: "TASK 6 : Evidence Chain Builder",
               path: "/tasks/task6",
             },
           ].map((task, i) => {
