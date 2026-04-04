@@ -1,8 +1,49 @@
 'use client'
 import React, { useState } from 'react';
+import { StaticImageData } from 'next/image';
+import systemInspection1 from './system_inspection_1.jpg';
+import systemInspection2 from './system_inspection_2.jpg';
+
+// ==================== FILE SECTIONS ====================
+const FILE_SECTIONS: { title: string; icon: string; files: string[] }[] = [
+    {
+        title: "Interrogation Records",
+        icon: "🎙️",
+        files: [
+            "Interrogation: Vikrant Kaul",
+            "Interrogation: Dr. Aarya Mehta",
+            "Interrogation: Leena Suri",
+            "Interrogation: Baba",
+            "Interrogation: Rajveer Malhotra",
+            "Interrogation: Kavya Sharma",
+            "Interrogation: Arjun Nanda"
+        ]
+    },
+    {
+        title: "Hardware Tampering",
+        icon: "🔩",
+        files: [
+            "Signal Flow", "Maintenance Log", "Bill of Materials", "Built Configuration Card",
+            "Observed vs Expected",
+            "Access Ledger", "System Inspection Snapshot"
+        ]
+    },
+    {
+        title: "Collected Evidence",
+        icon: "📂",
+        files: [
+            "Autopsy Report", "Neural Activity Log", "Override Approval", "Shutdown Suppressed",
+            "Firmware Change", "Security Log", "Export Log", "Chat Logs", "Testing Timeline",
+            "Alert Log", "Access Logs", "Endpoint Logs", "VPN Network Logs", "Critical Findings",
+            "Architecture Notes", "Badge & Door Logs", "Cold Storage Environment",
+            "Company Patch", "Rishab's Patch",
+            "Control Loop Config", "Safety Limits Config", "Feedback Monitor Config", "Shutdown Logic Patch"
+        ]
+    }
+];
 
 // ==================== FILE DATA ====================
-const FILE_DATA = {
+const FILE_DATA: { [key: string]: { icon: string; content: string; images?: StaticImageData[] } } = {
     "Autopsy Report": {
         icon: "📋",
         content: `FORENSIC POSTMORTEM REPORT > Case ID: NB-IR-2147 | Status: Finalized
@@ -836,6 +877,262 @@ TIMESTAMP	EVENT TYPE	DETAIL
 22:01:44	INVENTORY_SYNC	Restricted item record updated
 22:02:15	AUDIT_FLAG	Internal visibility limited
 22:03:02	STATUS_LOCK	Modification requires clearance`
+    },
+    "Interrogation: Vikrant Kaul": {
+        icon: "🎙️",
+        content: `SUSPECT 1: VIKRANT KAUL
+Director of Security & Compliance
+Behavior: Defensive, aggressive
+
+INTERROGATION RECORD
+
+Q: What was your relationship with Rishab Sen?
+A: Relationship? Haan tha… kaam ka. Previous firm mein junior tha mera. But he started poking his nose where it didn't belong. Bohot sawal karta tha… unnecessarily.
+
+Q: Did you have any conflict with him recently?
+A: Conflict? Dekho… argument hua tha. He accused me of something from past… jo prove nahi kar paya. And I don't like being questioned like that.
+
+Q: Did you physically assault him?
+A: Main haath utha sakta hoon… par reason hona chahiye. Us din bas warning di thi. Maar deta toh yeh interrogation hota hi nahi.
+
+Q: What unethical thing did Rishab know about you?
+A: Sab log thoda bahut compromise karte hain. Industry clean nahi hai. But jo bhi tha… irrelevant hai iss case mein.
+
+Q: Where were you during the incident?
+A: Security logs check kar lo. Main building mein tha… par crime scene pe nahi.
+
+Q: What do you think about NeuroBand issues?
+A: Product unstable hai… aur log chupana chahte hain. Bas.
+
+Q: Do you believe in spirituality?
+A: Seriously? Yeh poochne aaye ho?`
+    },
+    "Interrogation: Dr. Aarya Mehta": {
+        icon: "🎙️",
+        content: `SUSPECT 2: DR. AARYA MEHTA
+Chief Neuro-Architect / Design Lead
+Behavior: Controlled, calculated
+
+INTERROGATION RECORD
+
+Q: What did Rishab discover about NeuroBand?
+A: Rishab raised concerns, not discoveries. Preliminary observations… nothing validated.
+
+Q: What is the 'bias layer'?
+A: Bias layer is a calibration module. It aligns neural outputs. It is not harmful per se.
+
+Q: Did Rishab threaten your career?
+A: I wouldn't call it a threat. But premature disclosures could damage the company… and yes, reputations.
+
+Q: Did you contact anyone after speaking to Rishab?
+A: I may have consulted… external advisors. That is standard protocol.
+
+Q: Who are these advisors?
+A: I'm not obligated to disclose personal consultations.
+
+Q: What is your relation with Baba?
+A: He is a spiritual guide. My family respects him.
+
+Q: Are you hiding something?
+A: I've answered within legal and ethical limits.`
+    },
+    "Interrogation: Leena Suri": {
+        icon: "🎙️",
+        content: `SUSPECT 3: LEENA SURI
+Firmware Engineer
+Behavior: Nervous, emotional
+
+INTERROGATION RECORD
+
+Q: What was your relationship with Rishab?
+A: We were… close. Matlab… we worked together a lot.
+
+Q: Did he share anything with you?
+A: Haan… he said something was wrong with firmware… like… something was influencing outputs.
+
+Q: Were you scared for your job?
+A: Of course! Agar yeh sab leak hota toh… sab khatam.
+
+Q: Did Aarya pressure you?
+A: No… no… she just said… 'handle it carefully'.
+
+Q: Did Rishab seem afraid?
+A: Yes… he said someone else was involved… not just internal.
+
+Q: Who else?
+A: He mentioned… something like… an ID? ghost… something… I don't remember fully.
+
+Q: Did you love him?
+A: This is not relevant…`
+    },
+    "Interrogation: Baba": {
+        icon: "🎙️",
+        content: `SUSPECT 4: BABA
+Spiritual Guide (Tech-aware)
+Behavior: Cryptic, philosophical
+
+INTERROGATION RECORD
+
+Q: Did Aarya consult you?
+A: मनुष्य जब संशय में डूबता है, तब वह ज्ञान नहीं… सहारा खोजता है। आर्या ने भी वही किया।
+
+Q: What advice did you give her?
+A: मैंने कहा था… जो अशांति का कारण बने, उसका समाधान आवश्यक है। अब समाधान कैसे हो… यह बुद्धि का विषय है।
+
+Q: Do you know about NeuroBand issues?
+A: यंत्र तभी खतरनाक होता है जब उसके भीतर अदृश्य हस्तक्षेप हो। और यहाँ… हस्तक्षेप है।
+
+Q: Who is responsible?
+A: नाम में नहीं… संकेत में खोजो। भूत नहीं… पहचान है। एक संख्या… एक परत… एक छाया। '४१'… केवल अंक नहीं है।
+
+Q: What do you mean by '41'?
+A: जब भाव परत बन जाए… और पहचान संख्या बन जाए… तब मनुष्य नहीं… छाया कार्य करती है।
+
+Q: Is someone controlling the system?
+A: जो लिखता है वह संचालक नहीं होता। संचालक वह है… जो लिखता ही नहीं।
+
+Q: Are you involved?
+A: संत पर नहीं… विश्वास किया जाता है। परंतु अंधविश्वास… विनाश का कारण होता है।`
+    },
+    "Interrogation: Rajveer Malhotra": {
+        icon: "🎙️",
+        content: `SUSPECT 5: RAJVEER MALHOTRA
+VP Strategy / Investor Liaison
+Behavior: Polished, composed, controlled
+
+INTERROGATION RECORD
+
+Q: What was your interaction with Rishab Sen?
+A: Limited. He wasn't part of my reporting chain. But I knew he had concerns about timelines and release schedules.
+
+Q: Were you aware of any issues with the NeuroBand system?
+A: I was aware of disagreements between teams. That's expected in any complex product. Nothing was formally escalated to my level as a critical failure.
+
+Q: Did you push for the product release despite internal concerns?
+A: I pushed for clarity and adherence to timelines. Investors expect predictability. Final technical decisions are not made by me.`
+    },
+    "Interrogation: Kavya Sharma": {
+        icon: "🎙️",
+        content: `SUSPECT 6: KAVYA SHARMA
+Head of Public Relations
+Behavior: Calm, professional, media-trained
+
+INTERROGATION RECORD
+
+Q: Who prepared the official statement regarding Rishab Sen?
+A: My team drafted it based on inputs from internal departments, primarily security and compliance.
+
+Q: Did you personally verify the claims made in the statement?
+A: PR does not independently verify technical data. We rely on information that has been internally approved and cleared.
+
+Q: Why was the narrative focused on data theft so quickly?
+A: In crisis situations, clarity is important. A structured narrative prevents speculation and maintains stakeholder confidence.`
+    },
+    "Interrogation: Arjun Nanda": {
+        icon: "🎙️",
+        content: `SUSPECT 7: ARJUN NANDA
+Junior Security Analyst
+Behavior: Hesitant, nervous, cooperative
+
+INTERROGATION RECORD
+
+Q: What was your role on the night of the incident?
+A: I was monitoring system activity and access logs. It was mostly routine until I noticed some irregular patterns.
+
+Q: What kind of irregularities did you observe?
+A: Some log sequences didn't align properly… like timestamps and system events didn't fully match expected behavior.
+
+Q: Did you report these inconsistencies?
+A: Yes… I flagged it internally. But I was told it was already being handled and that I didn't need to escalate it further.`
+    },
+    "Access Ledger": {
+        icon: "🔑",
+        content: `ACCESS LEDGER
+LAB ACCESS LOG — SECURE ZONE (LAB 7)
+System: NeuroBand Test Facility
+
+20:32 — Entry Logged — LS (Leena Suri - Firmware)
+20:41 — Exit Logged — LS
+20:52 — Entry Logged — RS (Rishab Sen)
+20:58 — Entry Logged — FT (Facilities Tech)
+21:00 — Entry Logged — TECH-A (Maintenance)
+21:02 — Entry Logged — AN (Arjun Nanda)
+21:05 — System Access Triggered (Design Console)
+21:07 — Exit Logged — FT
+21:09 — Internal File Access Recorded
+        /designs/NeuroBand/v4/core
+21:10 — Test Cycle Initiated
+21:12 — System Override Flag Raised (auto-log)
+21:14 — Telemetry Spike Detected
+21:15 — [CRITICAL SYSTEM EVENT — NO ACCESS LOGGED]
+
+21:18 — Exit Logged — AN (Arjun Nanda)
+21:22 — System Idle State Detected
+21:31 — Entry Logged — LS (Leena Suri)
+21:36 — Exit Logged — LS
+
+═══════════════════════════════════════════════
+Security Log Entries
+═══════════════════════════════════════════════
+
+21:48 — Entry Logged — VK (Vikrant Kaul - Security)
+21:50 — Security Override Access Granted
+21:54 — Restricted Movement Authorized
+21:56 — Exit Logged — VK
+22:05 — Entry Logged — FT (Facilities Tech)
+22:12 — Maintenance Check (Post-event cleanup)
+22:18 — Exit Logged — FT
+
+Note:
+- All entries require valid authorization
+- System-triggered logs may not record physical access
+- Override actions are logged separately`
+    },
+    "System Inspection Snapshot": {
+        icon: "🔬",
+        content: `SYSTEM INSPECTION SNAPSHOT
+NEUROBAND RIG — PHYSICAL COMPONENT INSPECTION
+
+═══════════════════════════════════════════════
+COMPONENT A: REGULATOR
+═══════════════════════════════════════════════
+Model: REG-UPC-17
+Serial: SN-78-17-A
+Label: NEURAL OUTPUT REGULATOR
+Revision: A1 | Calibration: 04/25
+Status: MATCHED
+
+═══════════════════════════════════════════════
+COMPONENT C: ISOLATION SHIELD
+═══════════════════════════════════════════════
+Model: SHIELD-EMI-03
+ID: SH-22-C
+Label: ISOLATION SHIELD PLATE
+Note: DO NOT MODIFY / SEALED UNIT
+Status: MATCHED
+
+═══════════════════════════════════════════════
+COMPONENT B: FEEDBACK LIMITER (⚠️ MISMATCH)
+═══════════════════════════════════════════════
+Expected Model: FB-LIM REV-A
+Observed Model: FB-LIM REV-B
+Serial Mismatch: Expected 001-A / Found 001-B
+
+Resistor Values:
+  R1: 103
+  R2: 103
+  R3: Present
+  C2: Present
+  Q1: Present
+
+INPUT+- → OUTPUT
+
+⚠️ INSPECTION NOTE:
+Visual inspection suggests unit differs from recorded BOM.
+Limiter module appears to have been replaced with a
+different revision (REV-B instead of REV-A).
+This substitution was NOT documented in maintenance logs.`,
+        images: [systemInspection1, systemInspection2]
     }
 };
 
@@ -859,11 +1156,23 @@ const PrepRoom = () => {
     const [showLockDialog, setShowLockDialog] = useState(false);
     const [suspectsLocked, setSuspectsLocked] = useState(false);
     const [showSubmitPage, setShowSubmitPage] = useState(false);
+    const [showWelcomePopup, setShowWelcomePopup] = useState(true);
+    const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
+        "Collected Evidence": true,
+        "Hardware Tampering": true,
+        "Interrogation Records": true
+    });
 
-    const fileNames = Object.keys(FILE_DATA);
-    const filteredFiles = fileNames.filter(name =>
-        name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const toggleSection = (title: string) => {
+        setExpandedSections(prev => ({ ...prev, [title]: !prev[title] }));
+    };
+
+    const filteredSections = FILE_SECTIONS.map(section => ({
+        ...section,
+        files: section.files.filter(name =>
+            name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+    })).filter(section => section.files.length > 0 || searchQuery === '');
 
     const handleAddSuspect = (suspect: string) => {
         const emptyIndex = selectedSuspects.findIndex(s => s === null);
@@ -940,10 +1249,23 @@ const PrepRoom = () => {
 
             {/* Main Content */}
             <div style={styles.mainContent}>
-                {/* Left Column - File Repository */}
+                {/* Left Column - Evidence Panel */}
                 <div style={styles.leftColumn}>
+                    {/* Evidence Rule Banner */}
+                    <div style={styles.evidenceRule}>
+                        <div style={styles.evidenceRuleHeader}>📌 EVIDENCE RULE</div>
+                        <div style={styles.evidenceRuleText}>
+                            While preparing your interrogation plan,{'\n'}
+                            you must refer to evidence using its exact file name.{'\n\n'}
+                            Example:{'\n'}
+                            "Override_Approval_Log.txt"{'\n'}
+                            "Autopsy_Temperature_Report.pdf"{'\n\n'}
+                            This will be required during interrogation.
+                        </div>
+                    </div>
+
                     <h2 style={styles.columnTitle}>
-                        📁 FILE REPOSITORY
+                        🗂️ EVIDENCE PANEL
                     </h2>
 
                     {/* Search Bar */}
@@ -955,32 +1277,51 @@ const PrepRoom = () => {
                         style={styles.searchBar}
                     />
 
-                    {/* File List */}
+                    {/* File List with Sections */}
                     <div style={styles.fileList}>
-                        {filteredFiles.map((fileName) => (
-                            <div
-                                key={fileName}
-                                data-testid={`file-${fileName.toLowerCase().replace(/\s+/g, '-')}`}
-                                style={{
-                                    ...styles.fileItem,
-                                    ...(selectedFile === fileName ? styles.fileItemSelected : {})
-                                }}
-                                onClick={() => setSelectedFile(fileName)}
-                                onMouseEnter={(e) => {
-                                    if (selectedFile !== fileName) {
-                                        e.currentTarget.style.borderColor = '#cc2222';
-                                        e.currentTarget.style.background = '#1a0808';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (selectedFile !== fileName) {
-                                        e.currentTarget.style.borderColor = '#3a1818';
-                                        e.currentTarget.style.background = '#241010';
-                                    }
-                                }}
-                            >
-                                <span style={styles.fileIcon}>{FILE_DATA[fileName as keyof typeof FILE_DATA].icon}</span>
-                                <span style={styles.fileName}>{fileName}</span>
+                        {filteredSections.map((section) => (
+                            <div key={section.title}>
+                                <div
+                                    style={styles.sectionHeader}
+                                    onClick={() => toggleSection(section.title)}
+                                >
+                                    <span>{section.icon} {section.title.toUpperCase()}</span>
+                                    <span style={{ color: '#7a4a4a', fontSize: '0.8rem' }}>
+                                        {expandedSections[section.title] ? '▼' : '▶'} ({section.files.length})
+                                    </span>
+                                </div>
+                                {expandedSections[section.title] && section.files.map((fileName) => (
+                                    <div
+                                        key={fileName}
+                                        data-testid={`file-${fileName.toLowerCase().replace(/\s+/g, '-')}`}
+                                        style={{
+                                            ...styles.fileItem,
+                                            ...(selectedFile === fileName ? styles.fileItemSelected : {}),
+                                            marginLeft: '12px'
+                                        }}
+                                        onClick={() => setSelectedFile(fileName)}
+                                        onMouseEnter={(e) => {
+                                            if (selectedFile !== fileName) {
+                                                e.currentTarget.style.borderColor = '#cc2222';
+                                                e.currentTarget.style.background = '#1a0808';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (selectedFile !== fileName) {
+                                                e.currentTarget.style.borderColor = '#3a1818';
+                                                e.currentTarget.style.background = '#241010';
+                                            }
+                                        }}
+                                    >
+                                        <span style={styles.fileIcon}>{FILE_DATA[fileName as keyof typeof FILE_DATA]?.icon}</span>
+                                        <span style={styles.fileName}>{fileName}</span>
+                                    </div>
+                                ))}
+                                {expandedSections[section.title] && section.files.length === 0 && (
+                                    <div style={{ padding: '12px 12px 12px 24px', color: '#7a4a4a', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                        [ No files yet ]
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -1144,6 +1485,13 @@ const PrepRoom = () => {
                         </div>
                         <div style={styles.modalBody}>
                             <pre style={styles.fileContent}>{selectedFile && FILE_DATA[selectedFile as keyof typeof FILE_DATA].content}</pre>
+                            {selectedFile && FILE_DATA[selectedFile as keyof typeof FILE_DATA].images && (
+                                <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            {FILE_DATA[selectedFile as keyof typeof FILE_DATA].images!.map((img, i) => (
+                                        <img key={i} src={img.src} alt={`${selectedFile} - Image ${i + 1}`} style={{ width: '100%', borderRadius: '4px', border: '1px solid #3a1818' }} />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1217,6 +1565,54 @@ const PrepRoom = () => {
                                 }}
                             >
                                 [ CONFIRM LOCK ]
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Welcome Popup */}
+            {showWelcomePopup && (
+                <div style={styles.modalOverlay}>
+                    <div style={styles.welcomePopup}>
+                        <div style={styles.welcomeHeader}>⚠ FINAL TASK ALERT</div>
+                        <div style={styles.welcomeBody}>
+                            <p>You have reached the final stage of the investigation.</p>
+                            <p>All previous findings must now be used carefully.</p>
+                            <p>New evidence related to hardware tampering has been added to the repository. Review it thoroughly.</p>
+                            <p>You will now prepare for interrogation.</p>
+                            <p>Based on your understanding of the case:</p>
+                            <ul style={styles.welcomeList}>
+                                <li>Identify the individuals you suspect</li>
+                                <li>Support your suspicion with correct evidence files</li>
+                                <li>Use this to question them during interrogation</li>
+                            </ul>
+                            <p>Your conclusions will directly affect your performance in the next round.</p>
+                            <p style={{ color: '#ff8800', marginTop: '16px' }}>
+                                <strong>Note:</strong><br />
+                                You must reference evidence using exact file names.
+                            </p>
+                            <p style={{ color: '#7a4a4a', fontStyle: 'italic' }}>
+                                There is no correct or incorrect answer here — only how well you can justify your reasoning.
+                            </p>
+                            <p style={{ textAlign: 'center', color: '#ff3333', letterSpacing: '2px', marginTop: '12px' }}>
+                                Proceed carefully.
+                            </p>
+                        </div>
+                        <div style={{ textAlign: 'center', borderTop: '1px solid #3a1818', paddingTop: '20px' }}>
+                            <button
+                                style={styles.welcomeButton}
+                                onClick={() => setShowWelcomePopup(false)}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#2a0808';
+                                    e.currentTarget.style.boxShadow = '0 0 25px #ff333366';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = '#1a0505';
+                                    e.currentTarget.style.boxShadow = '0 0 15px #ff333333';
+                                }}
+                            >
+                                [ BEGIN PREPARATION ]
                             </button>
                         </div>
                     </div>
@@ -1668,6 +2064,92 @@ const styles: { [key: string]: React.CSSProperties } = {
         cursor: 'pointer',
         transition: 'all 0.2s',
         boxShadow: '0 0 20px #cc000066'
+    },
+    evidenceRule: {
+        background: '#1a1000',
+        border: '1px solid #ff880066',
+        borderRadius: '4px',
+        padding: '14px',
+        marginBottom: '16px'
+    },
+    evidenceRuleHeader: {
+        fontFamily: "'Orbitron', monospace",
+        fontSize: '0.85rem',
+        letterSpacing: '2px',
+        color: '#ff8800',
+        marginBottom: '8px',
+        fontWeight: 'bold'
+    },
+    evidenceRuleText: {
+        fontSize: '0.75rem',
+        lineHeight: '1.6',
+        color: '#e8c8c8',
+        whiteSpace: 'pre-line'
+    },
+    sectionHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px 12px',
+        background: '#2a1010',
+        border: '1px solid #4a1818',
+        borderRadius: '3px',
+        cursor: 'pointer',
+        marginBottom: '6px',
+        marginTop: '10px',
+        fontFamily: "'Orbitron', monospace",
+        fontSize: '0.8rem',
+        letterSpacing: '2px',
+        color: '#ff5555',
+        transition: 'all 0.2s'
+    },
+    welcomePopup: {
+        background: '#1a0d0d',
+        border: '2px solid #ff8800',
+        borderRadius: '8px',
+        padding: '30px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '85vh',
+        overflowY: 'auto',
+        boxShadow: '0 0 40px #ff880033'
+    },
+    welcomeHeader: {
+        fontFamily: "'Orbitron', monospace",
+        fontSize: '1.4rem',
+        letterSpacing: '3px',
+        color: '#ff8800',
+        textAlign: 'center',
+        marginBottom: '20px',
+        paddingBottom: '15px',
+        borderBottom: '1px solid #3a2810',
+        textShadow: '0 0 15px #ff880044'
+    },
+    welcomeBody: {
+        fontSize: '0.9rem',
+        lineHeight: '1.7',
+        color: '#e8c8c8',
+        marginBottom: '20px'
+    },
+    welcomeList: {
+        listStyleType: 'disc',
+        paddingLeft: '24px',
+        margin: '10px 0',
+        color: '#ff5555'
+    },
+    welcomeButton: {
+        padding: '14px 30px',
+        background: '#1a0505',
+        border: '2px solid #ff3333',
+        borderRadius: '4px',
+        color: '#ff3333',
+        fontFamily: "'Orbitron', monospace",
+        fontSize: '0.95rem',
+        letterSpacing: '3px',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        boxShadow: '0 0 15px #ff333333'
     }
 };
+
 export default PrepRoom;
