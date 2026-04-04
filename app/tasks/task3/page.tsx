@@ -373,7 +373,17 @@ function PuzzleSignalRouting({ solved, onSolve, onToast }: { solved: boolean; on
 function PuzzleTileFlip({ solved, onSolve, onToast, hintState }: { solved: boolean; onSolve: () => void; onToast: (m: string, t: ToastType) => void; hintState?: HintState }) {
     // CRACK THE CODE — guess a 4-digit code using number pad + clues
     // Each guess tells: ✓ correct digit + position, ◉ correct digit wrong position
-    const SECRET = () => { const d = []; while (d.length < 4) { const n = Math.floor(Math.random() * 10); if (!d.includes(n)) d.push(n); } return d; };
+
+    const SECRET = (): number[] => {
+  const d: number[] = [];
+  while (d.length < 4) {
+    const n = Math.floor(Math.random() * 10);
+    if (!d.includes(n)) d.push(n);
+  }
+  return d;
+};
+
+    // const SECRET = () => { const d = []; while (d.length < 4) { const n = Math.floor(Math.random() * 10); if (!d.includes(n)) d.push(n); } return d; };
     const [secret] = useState<number[]>(SECRET);
     // Dynamic hints — reveal actual digits from the secret
     const shuffledSecret = useMemo(() => [...secret].sort(() => Math.random() - 0.5), [secret]);
