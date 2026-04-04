@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 // ─── TYPES ───────────────────────────────────────────────
@@ -100,7 +98,7 @@ const GAME_INSTRUCTIONS: Record<number, { title: string; steps: string[]; tip: s
             "Arrange all lines into the correct script execution order.",
             "Press VERIFY ORDER when the sequence looks right.",
         ],
-        tip: "Follow logical Python script flow: Import → create session → authenticate → upload → commit → close.",
+        tip: "Follow logical Python script flow: Import → create session → auth → execute_transfer → commit → close.",
     },
 };
 
@@ -144,8 +142,8 @@ const HINTS: Record<number, Partial<Record<HintLevel, string>>> = {
     },
     // 7 — External Gateway: Code Alignment
     7: {
-        weak: "Three lines are obviously fixed by logic: the import must be line 1, the session.close() must be line 6, and session.authenticate() must come before session.upload(). Place those three anchors and only two positions remain ambiguous.",
-        strong: "Line 1: import transfer_module as tm · Line 2: session = tm.Session(host=\"ext_host\") · Line 3: session.authenticate(user=\"a.m_arch\") · Line 4: session.upload(\"nb_v4_backup.zip\") · Line 5: session.commit(sign=False) · Line 6: session.close()",
+        weak: "Three lines are obviously fixed by logic: the import must be line 1, the session.close() must be line 6, and session.auth() must come before session.execute_transfer(). Place those three anchors and only two positions remain ambiguous.",
+        strong: "Line 1: import transfer_module as tm · Line 2: session = tm.Session(host=\"ext_host\", port=9091) · Line 3: session.auth(token=\"0x99F_AUT\") · Line 4: session.execute_transfer(payload=\"neuro_dump_v2\", dest=\"ghost_node_x\") · Line 5: session.commit(sign=False) · Line 6: session.close()",
     },
 };
 
@@ -191,7 +189,8 @@ const CODE_PIECES = [
     'session = tm.Session(host="ext_host", port=9091)',
     'session.commit(sign=False)',
     'session.close()',
-];
+]; // Shuffled order for the UI fragments
+
 const SIMON_EMOJIS = ["🔴", "🟢", "🔵", "🟡"];
 const SIMON_COLORS = ["#ff3366", "#ff3333", "#cc2222", "#ffcc00"];
 const MEM_PAIRS: [string, string][] = [["WRK", "04"], ["NAS", "02"], ["USB", "07"], ["EXT", "HOST"], ["SYS", "LOG"], ["NET", "KEY"], ["PKT", "07A"], ["SEC", "HEX"]];
@@ -292,7 +291,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-mono);min-hei
 function shuffle<T>(arr: T[]): T[] {
     const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a;
 }
-function pad2(n: number): string { return String(n).padStart(2, "0"); }
+function pad2(n: number) { return String(n).padStart(2, "0"); }
 function btnStyle(color: "green" | "red" | "blue"): React.CSSProperties {
     return { padding: "5px 14px", background: "transparent", fontFamily: "var(--font-head)", fontSize: "0.55rem", letterSpacing: 3, cursor: "pointer", transition: "all 0.2s", borderRadius: 3, border: `1px solid var(--${color})`, color: `var(--${color})` };
 }
@@ -355,8 +354,8 @@ function InstructionsScreen({ idx, onStart, hasStarted }: { idx: PuzzleId; onSta
 
 function PuzzleSignalRouting({ solved, onSolve, onToast }: { solved: boolean; onSolve: () => void; onToast: (m: string, t: ToastType) => void }) {
     const [grid, setGrid] = useState<Pipe[][]>(SR_INIT);
-    const rotate = (r: number, c: number): void => { setGrid(g => { const ng = g.map(row => [...row]); const v = ng[r][c]; if (!v || v === "S" || v === "X") return ng; ng[r][c] = (ROTATE_MAP[v] ?? v) as Pipe; return ng; }); };
-    const check = (): void => {
+    const rotate = (r: number, c: number) => { setGrid(g => { const ng = g.map(row => [...row]); const v = ng[r][c]; if (!v || v === "S" || v === "X") return ng; ng[r][c] = (ROTATE_MAP[v] ?? v) as Pipe; return ng; }); };
+    const check = () => {
         const vis = Array.from({ length: 5 }, () => new Array(5).fill(false)); const q: [number, number][] = [[0, 2]]; vis[0][2] = true;
         const dirs = [{ dr: 0, dc: -1, to: "l", from: "r" }, { dr: 0, dc: 1, to: "r", from: "l" }, { dr: -1, dc: 0, to: "u", from: "d" }, { dr: 1, dc: 0, to: "d", from: "u" }];
         while (q.length) { const [r, c] = q.shift()!; if (r === 4 && c === 2) { onSolve(); return; } const conn = PIPE_CONN[grid[r][c]!] ?? { l: 0, r: 0, u: 0, d: 0 }; for (const { dr, dc, to, from } of dirs) { const nr = r + dr, nc = c + dc; if (nr < 0 || nr >= 5 || nc < 0 || nc >= 5 || vis[nr][nc]) continue; if (!conn[to as keyof typeof conn]) continue; const nconn = PIPE_CONN[grid[nr][nc]!] ?? { l: 0, r: 0, u: 0, d: 0 }; if (!nconn[from as keyof typeof nconn]) continue; vis[nr][nc] = true; q.push([nr, nc]); } }
@@ -373,8 +372,8 @@ function PuzzleSignalRouting({ solved, onSolve, onToast }: { solved: boolean; on
 function PuzzleTileFlip({ solved, onSolve, onToast, hintState }: { solved: boolean; onSolve: () => void; onToast: (m: string, t: ToastType) => void; hintState?: HintState }) {
     // CRACK THE CODE — guess a 4-digit code using number pad + clues
     // Each guess tells: ✓ correct digit + position, ◉ correct digit wrong position
-    const SECRET = (): number[] => { const d: number[] = []; while (d.length < 4) { const n = Math.floor(Math.random() * 10); if (!d.includes(n)) d.push(n); } return d; };
-    const [secret] = useState<number[]>(() => SECRET());
+    const SECRET = () => { const d = []; while (d.length < 4) { const n = Math.floor(Math.random() * 10); if (!d.includes(n)) d.push(n); } return d; };
+    const [secret] = useState<number[]>(SECRET);
     // Dynamic hints — reveal actual digits from the secret
     const shuffledSecret = useMemo(() => [...secret].sort(() => Math.random() - 0.5), [secret]);
     const weakHintText = `One digit in the code is: ${shuffledSecret[0]}. It appears somewhere in the 4-digit sequence.`;
@@ -390,10 +389,10 @@ function PuzzleTileFlip({ solved, onSolve, onToast, hintState }: { solved: boole
     const [won, setWon] = useState(false);
     const [failed, setFailed] = useState(false);
 
-    const reset = (): void => { setGuess([]); setHistory([]); setFailed(false); };
-    const addDigit = (n: number): void => { if (guess.length < 4 && !guess.includes(n) && !failed) setGuess(g => [...g, n]); };
-    const delDigit = (): void => { if (!failed) setGuess(g => g.slice(0, -1)); };
-    const submit = (): void => {
+    const reset = () => { setGuess([]); setHistory([]); setFailed(false); };
+    const addDigit = (n: number) => { if (guess.length < 4 && !guess.includes(n) && !failed) setGuess(g => [...g, n]); };
+    const delDigit = () => { if (!failed) setGuess(g => g.slice(0, -1)); };
+    const submit = () => {
         if (guess.length < 4 || failed) return;
         let exact = 0, close = 0;
         guess.forEach((d, i) => { if (d === secret[i]) exact++; else if (secret.includes(d)) close++; });
@@ -503,7 +502,7 @@ function PuzzleMemoryMatch({ solved, onSolve, hintState }: { solved: boolean; on
     const [lock, setLock] = useState(false);
 
     // Helper: reveal N unmatched pairs using functional state update
-    const revealPairs = (n: number): void => {
+    const revealPairs = (n: number) => {
         setMatched(prev => {
             const nm = new Set(prev);
             let revealed = 0;
@@ -527,7 +526,7 @@ function PuzzleMemoryMatch({ solved, onSolve, hintState }: { solved: boolean; on
         if (hintState?.strong) revealPairs(2);
     }, [hintState?.strong]);
 
-    const flip = (i: number): void => { if (lock || flipped.includes(i) || matched.has(i) || solved) return; const nf = [...flipped, i]; setFlipped(nf); if (nf.length === 2) { setLock(true); const [a, b] = nf; if (cards[a].pair === cards[b].pair) { const nm = new Set(matched); nm.add(a); nm.add(b); setMatched(nm); setFlipped([]); setLock(false); if (nm.size === TOTAL_PAIRS * 2) setTimeout(onSolve, 300); } else { setTimeout(() => { setFlipped([]); setLock(false); }, 900); } } };
+    const flip = (i: number) => { if (lock || flipped.includes(i) || matched.has(i) || solved) return; const nf = [...flipped, i]; setFlipped(nf); if (nf.length === 2) { setLock(true); const [a, b] = nf; if (cards[a].pair === cards[b].pair) { const nm = new Set(matched); nm.add(a); nm.add(b); setMatched(nm); setFlipped([]); setLock(false); if (nm.size === TOTAL_PAIRS * 2) setTimeout(onSolve, 300); } else { setTimeout(() => { setFlipped([]); setLock(false); }, 900); } } };
     return (<div>
         <div style={{ fontSize: "0.5rem", color: "var(--text-dim)", marginBottom: 8, letterSpacing: 1 }}>{matched.size / 2} / {TOTAL_PAIRS} pairs matched</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,72px)", gap: 6, margin: "0 auto 12px", width: "fit-content" }}>
@@ -574,7 +573,7 @@ function PuzzleArrowPath({ solved, onSolve, onToast }: { solved: boolean; onSolv
     const COLOR_HEX: Record<string, string> = { RED: "#ff3333", GREEN: "#22cc55", BLUE: "#3399ff", YELLOW: "#ffcc00" };
     const COLOR_BG: Record<string, string> = { RED: "#2a0808", GREEN: "#0a2a10", BLUE: "#081a2a", YELLOW: "#2a1e00" };
 
-    const makeRound = (): { word: string; color: string } => {
+    const makeRound = () => {
         const word = COLORS[Math.floor(Math.random() * 4)];
         let color = COLORS[Math.floor(Math.random() * 4)];
         // Ensure word and color are different (makes it a real Stroop challenge)
@@ -590,7 +589,7 @@ function PuzzleArrowPath({ solved, onSolve, onToast }: { solved: boolean; onSolv
     const [qNum, setQNum] = useState(1);                  // current question number (1-5)
     const [timeLeft, setTimeLeft] = useState(2);
 
-    const resetAll = (): void => { setStroopScore(0); setQNum(1); setFeedback(""); setWrongPick(null); setTimeLeft(2); setRound(makeRound()); };
+    const resetAll = () => { setStroopScore(0); setQNum(1); setFeedback(""); setWrongPick(null); setTimeLeft(2); setRound(makeRound()); };
 
     // 2-second countdown timer per round
     useEffect(() => {
@@ -599,9 +598,9 @@ function PuzzleArrowPath({ solved, onSolve, onToast }: { solved: boolean; onSolv
             // Time up counts as wrong
             const isLast = qNum >= TOTAL_Q;
             if (isLast) {
-                setTimeout(() => setFeedback("failed"), 0);
+                setFeedback("failed");
             } else {
-                setTimeout(() => setFeedback("timeup"), 0);
+                setFeedback("timeup");
                 setTimeout(() => { setFeedback(""); setWrongPick(null); setTimeLeft(2); setQNum(n => n + 1); setRound(makeRound()); }, 900);
             }
             return;
@@ -610,9 +609,9 @@ function PuzzleArrowPath({ solved, onSolve, onToast }: { solved: boolean; onSolv
         return () => clearInterval(t);
     }, [timeLeft, feedback, solved]);
 
-    useEffect(() => { setTimeout(() => setTimeLeft(2), 0); }, [round]);
+    useEffect(() => { setTimeLeft(2); }, [round]);
 
-    const pick = (chosen: string): void => {
+    const pick = (chosen: string) => {
         if (feedback !== "" || solved) return;
         const correct = chosen === round.color;
         const isLast = qNum >= TOTAL_Q;
@@ -801,11 +800,11 @@ function PuzzleSymbolGroup({ solved, onSolve, onToast }: { solved: boolean; onSo
     };
     const [all] = useState(() => shuffle([...SYM_CATS.FIRMWARE, ...SYM_CATS.SECURITY]));
     const [cur, setCur] = useState<Record<string, string | null>>({});
-    const moveTo = (s: string, cat: string | null): void => {
+    const moveTo = (s: string, cat: string | null) => {
         if (solved) return;
         setCur(c => { const n = { ...c }; n[s] = cat; return n; });
     };
-    const check = (): void => {
+    const check = () => {
         const ok = Object.entries(SYM_CATS).every(([cat, syms]) => syms.every(s => cur[s] === cat));
         if (ok) onSolve(); else onToast("GROUPING INCORRECT — REASSIGN", "error");
     };
@@ -908,7 +907,7 @@ function PuzzleSimon({ solved, onSolve, onToast, active }: { solved: boolean; on
     const [lives, setLives] = useState(MAX_LIVES);
     const seqRef = useRef<number[]>([]); const roundRef = useRef(0);
 
-    const go = useCallback((seq: number[], round: number) => {
+    const go = useCallback((seq, round) => {
         const ns = [...seq, Math.floor(Math.random() * 4)];
         seqRef.current = ns; roundRef.current = round;
         setPs([]); setWaiting(false);
@@ -923,7 +922,7 @@ function PuzzleSimon({ solved, onSolve, onToast, active }: { solved: boolean; on
         }, 350 * ns.length + 250);
     }, []);
 
-    useEffect(() => { if (!solved && active) setTimeout(() => go([], 1), 0); }, [active]);
+    useEffect(() => { if (!solved && active) go([], 1); }, [active]);
 
     const restart = () => { setLives(MAX_LIVES); seqRef.current = []; roundRef.current = 0; go([], 1); };
 
@@ -970,10 +969,10 @@ function PuzzleSimon({ solved, onSolve, onToast, active }: { solved: boolean; on
 }
 
 function PuzzleCodeAlign({ solved, onSolve, onToast }: { solved: boolean; onSolve: () => void; onToast: (m: string, t: ToastType) => void }) {
-    const [order, setOrder] = useState<string[]>(() => shuffle([...CODE_PIECES]));
+    const [order, setOrder] = useState<string[]>(() => shuffle(CODE_PIECES));
     const [drag, setDrag] = useState<number | null>(null);
-    const drop = (t: number): void => { if (drag === null || drag === t) return; setOrder(o => { const n = [...o];[n[drag], n[t]] = [n[t], n[drag]]; return n; }); setDrag(null); };
-    const check = async (): Promise<void> => {
+    const drop = (t: number) => { if (drag === null || drag === t) return; setOrder(o => { const n = [...o];[n[drag], n[t]] = [n[t], n[drag]]; return n; }); setDrag(null); };
+    const check = async () => {
         try {
             const res = await fetch("/api/tasks/submit", {
                 method: "POST", headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
@@ -982,13 +981,12 @@ function PuzzleCodeAlign({ solved, onSolve, onToast }: { solved: boolean; onSolv
             const data = await res.json();
             if (data.isCorrect) setTimeout(onSolve, 400);
             else onToast("CODE ORDER INCORRECT — REARRANGE", "error");
-        } catch {
-            onToast("VALIDATION ERROR", "error");
-        }
+        } catch { onToast("CONNECTION ERROR", "error"); }
     };
+
     return (<div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10 }}>
-            {order.map((line, i) => (<div key={line} draggable={!solved} onDragStart={() => setDrag(i)} onDragOver={e => e.preventDefault()} onDrop={() => drop(i)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: solved ? "#1a0505" : "var(--bg)", border: `1px solid ${solved ? "var(--green)" : drag === i ? "var(--yellow)" : "var(--border)"}`, borderRadius: 3, fontSize: "0.58rem", letterSpacing: 1, cursor: solved ? "default" : "grab", userSelect: "none", opacity: drag === i ? 0.5 : 1, color: solved ? "var(--green)" : "var(--text)" }}>
+            {order.map((line, i) => (<div key={line} draggable={!solved} onDragStart={() => setDrag(i)} onDragOver={e => e.preventDefault()} onDrop={() => drop(i)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: solved && order[i] === CODE_PIECES[i] ? "#1a0505" : "var(--bg)", border: `1px solid ${solved && order[i] === CODE_PIECES[i] ? "var(--green)" : drag === i ? "var(--yellow)" : "var(--border)"}`, borderRadius: 3, fontSize: "0.58rem", letterSpacing: 1, cursor: solved ? "default" : "grab", userSelect: "none", opacity: drag === i ? 0.5 : 1, color: solved && order[i] === CODE_PIECES[i] ? "var(--green)" : "var(--text)" }}>
                 <span style={{ color: "var(--text-dim)", fontSize: "0.52rem", width: 14, textAlign: "right" }}>{i + 1}</span>{line}
             </div>))}
         </div>
@@ -1320,12 +1318,12 @@ const GHOST_QUESTIONS = [
     },
     {
         id: 2,
-        query: "What specific parameter was adjusted to allow the system to withstand the overload without initiating a hard shutdown?",
+        query: "What setting enables bypassing automatic safety limits?",
         hints: { weak: GHOST_HINT_WEAK, medium: GHOST_HINT_MEDIUM, strong: GHOST_HINT_STRONG },
         mission: "The transfer path is becoming clear. Now dig deeper into the system configuration.",
         followup: "Review safety_limits.cfg carefully. There is one key that should not have been enabled.",
-        answers: [],
-        correct_reply: "AFFIRMATIVE.\nThe 'spike tolerance' window was extended from 2.5s to 12.0s via the custom patch. This caused the system to delay its emergency response until it was too late.\nThis was not an accident.",
+        answers: ["manual_override", "manual override", "override"],
+        correct_reply: "Correct. manual_override was enabled — disabling automatic safety limits and allowing unrestricted stimulation parameters. This is the second breach vector.",
         wrong_reply: "Not quite. Check safety_limits.cfg — look specifically at the override field. What value was set that bypassed the safety layer?",
     },
     {
@@ -1356,24 +1354,22 @@ function Ghost41Chat({ solved, unlocked, onHintUsed, onCorrect }: { solved: bool
 
     useEffect(() => { msgsEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
     useEffect(() => {
-        setTimeout(() => {
-            if (qIdx === 0) {
-                // First question — initialise fresh
-                setMsgs([
-                    { role: "ghost", text: q.mission },
-                    { role: "ghost", text: q.followup },
-                    { role: "ghost", text: "GHOST41_ID > QUERY\n" + q.query },
-                ]);
-            } else {
-                // Subsequent questions — append to existing conversation, never wipe it
-                setMsgs(prev => [
-                    ...prev,
-                    { role: "ghost", text: "— NEXT OBJECTIVE —" },
-                    { role: "ghost", text: "GHOST41_ID > QUERY\n" + q.query },
-                ]);
-            }
-            setInput(""); setHintPanel("closed"); if (qIdx === 0) setShownHints({}); setWrongCount(0); setLastCorrect(false);
-        }, 0);
+        if (qIdx === 0) {
+            // First question — initialise fresh
+            setMsgs([
+                { role: "ghost", text: q.mission },
+                { role: "ghost", text: q.followup },
+                { role: "ghost", text: "GHOST41_ID > QUERY\n" + q.query },
+            ]);
+        } else {
+            // Subsequent questions — append to existing conversation, never wipe it
+            setMsgs(prev => [
+                ...prev,
+                { role: "ghost", text: "— NEXT OBJECTIVE —" },
+                { role: "ghost", text: "GHOST41_ID > QUERY\n" + q.query },
+            ]);
+        }
+        setInput(""); setHintPanel("closed"); if (qIdx === 0) setShownHints({}); setWrongCount(0); setLastCorrect(false);
     }, [qIdx]);
 
     const send = async (): Promise<void> => {
@@ -1390,21 +1386,19 @@ function Ghost41Chat({ solved, unlocked, onHintUsed, onCorrect }: { solved: bool
             setMsgs(m => [...m, { role: "user", text: val }, { role: "ghost", text: ok ? q.correct_reply : q.wrong_reply }]);
             setInput("");
             setLastCorrect(ok);
-            if (!ok) {
-                const newCount = wrongCount + 1;
-                setWrongCount(newCount);
-            }
-            const Q_POINTS = [30, 30, 0];
+            if (!ok) setWrongCount(prev => prev + 1);
+
             if (ok) {
                 setWrongCount(0); setHintPanel("closed"); setShownHints({});
-                if (onCorrect && Q_POINTS[qIdx] > 0) onCorrect(Q_POINTS[qIdx]);
+                if (onCorrect && (qIdx === 0 || qIdx === 1)) onCorrect(30);
                 if (qIdx < GHOST_QUESTIONS.length - 1) setTimeout(() => setQIdx(i => i + 1), 1800);
                 else setTimeout(() => setDone(true), 1800);
             }
         } catch {
-            setMsgs(m => [...m, { role: "user", text: val }, { role: "ghost", text: "CONNECTION ERROR" }]);
+            setMsgs(m => [...m, { role: "user", text: val }, { role: "ghost", text: "CONNECTION ERROR — PLEASE RETRY" }]);
         }
     };
+
 
     return (<>
         {/* RIGHT SIDE PANEL — slides in from right */}
@@ -1613,7 +1607,7 @@ function ReconPanel({ onToast, onUnlockGhost }: { onToast: (m: string, t: ToastT
     const AS = ["wrk04", "nas02", "usb07"];
 
     // Fragment pool: correct + decoys, reshuffled on every failed attempt
-    const [pool, setPool] = useState<string[]>(() => makeFragPool());
+    const [pool, setPool] = useState<string[]>(makeFragPool);
     const [cs, setCs] = useState<string[]>(["", "", "", ""]);
     const [sf, setSf] = useState<string | null>(null);
     const [s1, setS1] = useState(false); const [s2, setS2] = useState(false);
@@ -1627,13 +1621,13 @@ function ReconPanel({ onToast, onUnlockGhost }: { onToast: (m: string, t: ToastT
     const [showF, setShowF] = useState(false);
     const [attempts, setAttempts] = useState(0);
 
-    const fill = (i: number): void => {
+    const fill = (i: number) => {
         if (!sf) return onToast("Select a fragment first", "info");
         setCs(s => { const n = [...s].map(v => v === sf ? "" : v); n[i] = sf; return n; });
         setSf(null);
     };
 
-    const v1 = (): void => {
+    const v1 = () => {
         if (JSON.stringify(cs) === JSON.stringify(CF)) {
             setS1(true);
             onToast("TRANSFER PATH VALIDATED", "success");
@@ -1647,7 +1641,7 @@ function ReconPanel({ onToast, onUnlockGhost }: { onToast: (m: string, t: ToastT
         }
     };
 
-    const v2 = (): void => {
+    const v2 = () => {
         if (act["act-0"] === "lsuri_fw" && act["act-1"] === "a.m_arch" && act["act-2"] === "vk_sec") {
             setS2(true);
             onToast("CHAIN OF CUSTODY RECONSTRUCTED", "success");
@@ -1822,7 +1816,7 @@ function LandingBrief({ onStart }: { onStart: () => void }) {
                 marginBottom: 14,
                 textAlign: "center",
                 textShadow: "0 0 20px rgba(200,0,0,0.3)",
-            }}>TASK 3: INVESTIGATION</div>
+            }}>TASK: CHAIN OF CUSTODY</div>
 
             {/* Protocol badge */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
@@ -1952,11 +1946,11 @@ export default function App() {
         return attempt;
     });
 
-    const toast = useCallback((msg: string, type: ToastType): void => { const id = tid.current++; setToasts(t => [...t, { id, msg, type }]); setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3100); }, []);
+    const toast = useCallback((msg: string, type: ToastType) => { const id = tid.current++; setToasts(t => [...t, { id, msg, type }]); setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3100); }, []);
 
-    const onSolve = (idx: number): void => { setSolved(s => { if (s[idx]) return s; const ns = [...s]; ns[idx] = true; if (ns.filter(Boolean).length === 8) setTimeout(() => setAllSolved(true), 600); return ns; }); setModal(null); toast(`FRAGMENT ACQUIRED: ${FRAGMENTS[idx].id}`, "success"); };
-    const onHR = (ni: number, lv: HintLevel): void => setPending({ nodeIdx: ni, level: lv });
-    const applyHint = (): void => { if (!pending) return; const { nodeIdx, level } = pending; setHints(h => { const n = [...h]; n[nodeIdx] = { ...n[nodeIdx], [level]: true }; return n; }); setScore(s => s - HINT_COSTS[level]); toast(`HINT ACCESSED: −${HINT_COSTS[level]} PTS`, "warn"); setPending(null); };
+    const onSolve = (idx: number) => { setSolved(s => { if (s[idx]) return s; const ns = [...s]; ns[idx] = true; if (ns.filter(Boolean).length === 8) setTimeout(() => setAllSolved(true), 600); return ns; }); setModal(null); toast(`FRAGMENT ACQUIRED: ${FRAGMENTS[idx].id}`, "success"); };
+    const onHR = (ni: number, lv: HintLevel) => setPending({ nodeIdx: ni, level: lv });
+    const applyHint = () => { if (!pending) return; const { nodeIdx, level } = pending; setHints(h => { const n = [...h]; n[nodeIdx] = { ...n[nodeIdx], [level]: true }; return n; }); setScore(s => s - HINT_COSTS[level]); toast(`HINT ACCESSED: −${HINT_COSTS[level]} PTS`, "warn"); setPending(null); };
 
     const total = solved.filter(Boolean).length;
 

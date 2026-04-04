@@ -1,5 +1,7 @@
 'use client'
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
 import { StaticImageData } from 'next/image';
 import systemInspection1 from './system_inspection_1.jpg';
 import systemInspection2 from './system_inspection_2.jpg';
@@ -1149,6 +1151,8 @@ const SUSPECTS = [
 
 // ==================== MAIN COMPONENT ====================
 const PrepRoom = () => {
+    const router = useRouter();
+
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFile, setSelectedFile] = useState<string | null>(null);
     const [selectedSuspects, setSelectedSuspects] = useState<(string | null)[]>([null, null, null]);
@@ -1197,8 +1201,24 @@ const PrepRoom = () => {
         setShowLockDialog(false);
     };
 
-    const handleSubmit = () => {
-        window.open("https://forms.gle/VPNuSJUaaoPWoqJp7", "_blank");
+    const handleSubmit = async () => {
+        if (selectedSuspects.filter(Boolean).length < 3) {
+            alert("SELECT 3 SUSPECTS BEFORE SUBMITTING");
+            return;
+        }
+        try {
+            const res = await fetch("/api/tasks/submit", {
+                method: "POST", headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+                body: JSON.stringify({ taskId: "task6", action: "finalSubmission", payload: { suspects: selectedSuspects } })
+            });
+            const data = await res.json();
+            if (data.isCorrect) {
+                alert("FINAL SUBMISSION LOGGED. INVESTIGATION COMPLETE.");
+                router.push("/");
+            } else {
+                alert("SUBMISSION FAILED. CHECK YOUR SELECTIONS.");
+            }
+        } catch { alert("CONNECTION ERROR"); }
     };
 
     const suspectCount = selectedSuspects.filter(s => s !== null).length;
@@ -1487,7 +1507,7 @@ const PrepRoom = () => {
                             <pre style={styles.fileContent}>{selectedFile && FILE_DATA[selectedFile as keyof typeof FILE_DATA].content}</pre>
                             {selectedFile && FILE_DATA[selectedFile as keyof typeof FILE_DATA].images && (
                                 <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            {FILE_DATA[selectedFile as keyof typeof FILE_DATA].images!.map((img, i) => (
+                                    {FILE_DATA[selectedFile as keyof typeof FILE_DATA].images!.map((img, i) => (
                                         <img key={i} src={img.src} alt={`${selectedFile} - Image ${i + 1}`} style={{ width: '100%', borderRadius: '4px', border: '1px solid #3a1818' }} />
                                     ))}
                                 </div>
