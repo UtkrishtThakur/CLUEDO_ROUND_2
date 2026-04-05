@@ -51,7 +51,7 @@ export async function POST(req: Request) {
                     ["manual", "override", "manual_override", "manual override"],
                     ["patch", "shutdown_logic", "shutdown logic", "tolerance"]
                 ];
-                const ok = Q_ANS[qIdx]?.some((k) => answer.toLowerCase().includes(k));
+                const ok = qIdx === 2 ? !!answer?.trim() : Q_ANS[qIdx]?.some((k) => answer.toLowerCase().includes(k));
                 isCorrect = !!ok;
                 score = isCorrect && qIdx < 2 ? 30 : 0;
             } else if (action === "puzzleCrack") {
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
                 if (qIdx === 0) isCorrect = answer?.toLowerCase().includes("temporary safety override");
                 else if (qIdx === 1) isCorrect = answer?.toLowerCase().includes("a.m_arch") || answer?.toLowerCase().includes("am_arch");
                 else if (qIdx === 2) {
-                    isCorrect = answer?.length > 10; // Q3 is paragraph
+                    isCorrect = !!answer?.trim(); // Q3 is paragraph
                     score = isCorrect ? 50 : 0;
                 }
             }
