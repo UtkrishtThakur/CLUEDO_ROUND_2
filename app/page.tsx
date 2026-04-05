@@ -176,12 +176,6 @@ export default function Page() {
           </div>
 
           <div className="mt-8 flex gap-4">
-            <button
-              onClick={() => window.open("https://drive.google.com/drive/folders/1EWbL3lLw85ust0Pt3qLG8d1kIDrPZ-xO", "_blank")}
-              className="border border-red-600 px-6 py-2 hover:bg-red-600 transition"
-            >
-              START INVESTIGATION
-            </button>
           </div>
         </div>
       </div>

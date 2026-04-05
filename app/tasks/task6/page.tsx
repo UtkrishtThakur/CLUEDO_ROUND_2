@@ -1,5 +1,8 @@
 'use client'
 import React, { useState } from 'react';
+import { StaticImageData } from 'next/image';
+import systemInspection1 from './system_inspection_1.jpg';
+import systemInspection2 from './system_inspection_2.jpg';
 
 // ==================== FILE SECTIONS ====================
 const FILE_SECTIONS: { title: string; icon: string; files: string[] }[] = [
@@ -40,7 +43,7 @@ const FILE_SECTIONS: { title: string; icon: string; files: string[] }[] = [
 ];
 
 // ==================== FILE DATA ====================
-const FILE_DATA: { [key: string]: { icon: string; content: string; images?: string[] } } = {
+const FILE_DATA: { [key: string]: { icon: string; content: string; images?: StaticImageData[] } } = {
     "Autopsy Report": {
         icon: "📋",
         content: `FORENSIC POSTMORTEM REPORT > Case ID: NB-IR-2147 | Status: Finalized
@@ -1129,7 +1132,7 @@ Visual inspection suggests unit differs from recorded BOM.
 Limiter module appears to have been replaced with a
 different revision (REV-B instead of REV-A).
 This substitution was NOT documented in maintenance logs.`,
-        images: []
+        images: [systemInspection1, systemInspection2]
     }
 };
 
@@ -1213,11 +1216,9 @@ const PrepRoom = () => {
                         <p style={styles.submitText}>
                             To submit your evidence, please fill out the form:
                         </p>
-                        <a
-                            href="https://forms.gle/VPNuSJUaaoPWoqJp7"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{...styles.submitButton, display: 'inline-block', textDecoration: 'none'}}
+                        <button
+                            style={styles.submitButton}
+                            onClick={handleSubmit}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.background = '#ff1111';
                                 e.currentTarget.style.boxShadow = '0 0 30px #ff111188';
@@ -1228,7 +1229,7 @@ const PrepRoom = () => {
                             }}
                         >
                             SUBMIT EVIDENCE
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1487,7 +1488,7 @@ const PrepRoom = () => {
                             {selectedFile && FILE_DATA[selectedFile as keyof typeof FILE_DATA].images && (
                                 <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             {FILE_DATA[selectedFile as keyof typeof FILE_DATA].images!.map((img, i) => (
-                                        <img key={i} src={img} alt={`${selectedFile} - Image ${i + 1}`} style={{ width: '100%', borderRadius: '4px', border: '1px solid #3a1818' }} />
+                                        <img key={i} src={img.src} alt={`${selectedFile} - Image ${i + 1}`} style={{ width: '100%', borderRadius: '4px', border: '1px solid #3a1818' }} />
                                     ))}
                                 </div>
                             )}
@@ -2150,4 +2151,5 @@ const styles: { [key: string]: React.CSSProperties } = {
         boxShadow: '0 0 15px #ff333333'
     }
 };
+
 export default PrepRoom;
