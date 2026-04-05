@@ -1153,6 +1153,7 @@ const PrepRoom = () => {
     const [showLockDialog, setShowLockDialog] = useState(false);
     const [suspectsLocked, setSuspectsLocked] = useState(false);
     const [showSubmitPage, setShowSubmitPage] = useState(false);
+    const [justification, setJustification] = useState("");
     const [showWelcomePopup, setShowWelcomePopup] = useState(true);
     const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
         "Collected Evidence": true,
@@ -1194,8 +1195,24 @@ const PrepRoom = () => {
         setShowLockDialog(false);
     };
 
-    const handleSubmit = () => {
-        window.open("https://forms.gle/VPNuSJUaaoPWoqJp7", "_blank");
+    const handleSubmit = async () => {
+        if (selectedSuspects.filter(Boolean).length < 3) {
+            alert("SELECT 3 SUSPECTS BEFORE SUBMITTING");
+            return;
+        }
+        try {
+            const res = await fetch("/api/tasks/submit", {
+                method: "POST", headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+                body: JSON.stringify({ taskId: "task6", action: "finalSubmission", payload: { suspects: selectedSuspects, justification } })
+            });
+            const data = await res.json();
+            if (data.isCorrect) {
+                alert("FINAL SUBMISSION LOGGED. INVESTIGATION COMPLETE.");
+                router.push("/");
+            } else {
+                alert("SUBMISSION FAILED. CHECK YOUR SELECTIONS.");
+            }
+        } catch { alert("CONNECTION ERROR"); }
     };
 
     const suspectCount = selectedSuspects.filter(s => s !== null).length;
@@ -1211,13 +1228,30 @@ const PrepRoom = () => {
                         <div style={styles.submitIcon}>🔍</div>
                         <h1 style={styles.submitTitle}>EVIDENCE SUBMISSION</h1>
                         <p style={styles.submitText}>
-                            To submit your evidence, please fill out the form:
+                            To submit your evidence, please provide your final justification:
                         </p>
-                        <a
-                            href="https://forms.gle/VPNuSJUaaoPWoqJp7"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{...styles.submitButton, display: 'inline-block', textDecoration: 'none'}}
+                        <textarea
+                            placeholder="Type your justification here (min 10 characters)..."
+                            style={{
+                                width: '100%',
+                                height: '120px',
+                                background: '#241010',
+                                border: '1px solid #3a1818',
+                                borderRadius: '3px',
+                                color: '#e8c8c8',
+                                fontFamily: "'Share Tech Mono', monospace",
+                                fontSize: '0.9rem',
+                                padding: '10px',
+                                marginBottom: '20px',
+                                outline: 'none',
+                                resize: 'none'
+                            }}
+                            value={justification}
+                            onChange={(e) => setJustification(e.target.value)}
+                        />
+                        <button
+                            style={styles.submitButton}
+                            onClick={handleSubmit}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.background = '#ff1111';
                                 e.currentTarget.style.boxShadow = '0 0 30px #ff111188';
@@ -1460,34 +1494,34 @@ const PrepRoom = () => {
                         }
                     }}
                 >
-                    <div style={styles.modalContent}>
-                        <div style={styles.modalHeader}>
-                            <div style={styles.modalHeaderLeft}>
-                                <span style={styles.modalIcon}>{FILE_DATA[selectedFile as keyof typeof FILE_DATA].icon}</span>
-                                <h3 style={styles.modalTitle}>{selectedFile}</h3>
-                            </div>
-                            <button
-                                data-testid="close-file-modal"
-                                style={styles.closeButton}
-                                onClick={() => setSelectedFile(null)}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.borderColor = '#ff3333';
-                                    e.currentTarget.style.color = '#ff3333';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.borderColor = '#cc2222';
-                                    e.currentTarget.style.color = '#cc2222';
-                                }}
-                            >
-                                ✕ CLOSE
-                            </button>
-                        </div>
-                        <div style={styles.modalBody}>
-                            <pre style={styles.fileContent}>{selectedFile && FILE_DATA[selectedFile as keyof typeof FILE_DATA].content}</pre>
-                            {selectedFile && FILE_DATA[selectedFile as keyof typeof FILE_DATA].images && (
-                                <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            {FILE_DATA[selectedFile as keyof typeof FILE_DATA].images!.map((img, i) => (
-                                        <img key={i} src={img} alt={`${selectedFile} - Image ${i + 1}`} style={{ width: '100%', borderRadius: '4px', border: '1px solid #3a1818' }} />
+                  <div style={styles.modalContent}>
+                      <div style={styles.modalHeader}>
+                          <div style={styles.modalHeaderLeft}>
+                              <span style={styles.modalIcon}>{FILE_DATA[selectedFile as keyof typeof FILE_DATA].icon}</span>
+                              <h3 style={styles.modalTitle}>{selectedFile}</h3>
+                          </div>
+                          <button
+                              data-testid="close-file-modal"
+                              style={styles.closeButton}
+                              onClick={() => setSelectedFile(null)}
+                              onMouseEnter={(e) => {
+                                  e.currentTarget.style.borderColor = '#ff3333';
+                                  e.currentTarget.style.color = '#ff3333';
+                              }}
+                              onMouseLeave={(e) => {
+                                  e.currentTarget.style.borderColor = '#cc2222';
+                                  e.currentTarget.style.color = '#cc2222';
+                              }}
+                          >
+                              ✕ CLOSE
+                          </button>
+                      </div>
+                      <div style={styles.modalBody}>
+                          <pre style={styles.fileContent}>{selectedFile && FILE_DATA[selectedFile as keyof typeof FILE_DATA].content}</pre>
+                          {selectedFile && FILE_DATA[selectedFile as keyof typeof FILE_DATA].images && (
+                              <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                          {FILE_DATA[selectedFile as keyof typeof FILE_DATA].images!.map((img, i) => (
+                                      <img key={i} src={img} alt={`${selectedFile} - Image ${i + 1}`} style={{ width: '100%', borderRadius: '4px', border: '1px solid #3a1818' }} />
                                     ))}
                                 </div>
                             )}

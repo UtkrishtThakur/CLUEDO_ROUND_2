@@ -214,7 +214,7 @@ export default function Page() {
             if (userIndex > i) status = "COMPLETED";
             else if (userIndex === i) status = "PENDING / ACTIVE";
 
-            const locked = userIndex < i && userIndex !== -1;
+            const locked = false; // All tasks are unlocked as requested.
 
             return (
               <button

@@ -51,7 +51,7 @@ export async function POST(req: Request) {
                     ["manual", "override", "manual_override", "manual override"],
                     ["patch", "shutdown_logic", "shutdown logic", "tolerance"]
                 ];
-                const ok = Q_ANS[qIdx]?.some((k) => answer.toLowerCase().includes(k));
+                const ok = qIdx === 2 ? !!answer?.trim() : Q_ANS[qIdx]?.some((k) => answer.toLowerCase().includes(k));
                 isCorrect = !!ok;
                 score = isCorrect && qIdx < 2 ? 30 : 0;
             } else if (action === "puzzleCrack") {
@@ -77,27 +77,30 @@ export async function POST(req: Request) {
         } else if (taskId === "task5") {
             if (action === "ghostQuery") {
                 const { qIdx, answer } = payload;
-                const Q_ANS = [
-                    ["override", "safety override", "temporary override", "temporary safety override"],
-                    ["a.m_arch", "am_arch", "a.m arch"],
-                    ["override", "firmware", "tolerance", "shutdown"]
-                ];
-                const ok = Q_ANS[qIdx]?.some((k) => answer.toLowerCase().includes(k));
-                isCorrect = !!ok;
-                score = isCorrect ? 50 : 0;
+                if (qIdx === 0) isCorrect = answer?.toLowerCase().includes("temporary safety override");
+                else if (qIdx === 1) isCorrect = answer?.toLowerCase().includes("a.m_arch") || answer?.toLowerCase().includes("am_arch");
+                else if (qIdx === 2) {
+                    isCorrect = !!answer?.trim(); // Q3 is paragraph
+                    score = isCorrect ? 50 : 0;
+                }
             }
         } else if (taskId === "task6") {
             if (action === "finalSubmission") {
-                // In a real application, check against the exact culprits or Google form trigger logic
-                // For now, accept if payload contains exactly 3 valid choices
                 const counts = payload?.suspects?.filter(Boolean).length;
                 isCorrect = counts === 3;
             }
         }
 
+        // Determine if this is the final step of the current task to trigger promotion
         const tIndex = TASK_OPTS.indexOf(taskId);
-        if (tIndex >= 0 && isCorrect && action !== "ghostQuery" && action !== "puzzleCrack") {
-            // Promote to next task if it's the main completion event block
+        const isFinalStep =
+            (taskId === "task1" && action === "validateQ3") ||
+            (taskId === "task3" && action === "ghostQuery" && payload?.qIdx === 2) ||
+            (taskId === "task5" && action === "ghostQuery" && payload?.qIdx === 2) ||
+            (taskId === "task6" && action === "finalSubmission");
+
+        if (tIndex >= 0 && isCorrect && isFinalStep) {
+            // Promotion logic: increment index only if this is the current task
             if (user.currentTaskIndex === tIndex) {
                 user.currentTaskIndex += 1;
             }

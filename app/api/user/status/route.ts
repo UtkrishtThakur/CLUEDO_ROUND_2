@@ -11,6 +11,7 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const TASK_OPTS = ["task1", "task3", "task5", "task6"];
         const token = authHeader.split(" ")[1];
         const decoded = verifyJwt(token);
         if (!decoded) {
