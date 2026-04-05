@@ -77,8 +77,8 @@ export async function POST(req: Request) {
         } else if (taskId === "task5") {
             if (action === "ghostQuery") {
                 const { qIdx, answer } = payload;
-                if (qIdx === 0) isCorrect = answer?.toLowerCase().includes("leena");
-                else if (qIdx === 1) isCorrect = answer?.toLowerCase().includes("field"); // field test
+                if (qIdx === 0) isCorrect = answer?.toLowerCase().includes("temporary safety override");
+                else if (qIdx === 1) isCorrect = answer?.toLowerCase().includes("a.m_arch") || answer?.toLowerCase().includes("am_arch");
                 else if (qIdx === 2) {
                     isCorrect = answer?.length > 10; // Q3 is paragraph
                     score = isCorrect ? 50 : 0;
